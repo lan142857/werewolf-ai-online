@@ -1,0 +1,2787 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>多职业狼人杀 AI 聊天群</title>
+<style>
+  :root{
+    --bg:#87CEEB;
+    --panel:#171a21;
+    --panel2:#1f232d;
+    --line:#2c313c;
+    --text:#e6e8eb;
+    --muted:#9aa3af;
+    --gold:#d4af37;
+    --red:#ff5c5c;
+    --green:#4cd97b;
+    --blue:#5cb8ff;
+    --purple:#b78cff;
+    --wolf:#ff7a7a;
+    --good:#7ae0a2;
+    --neutral:#e0c05a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;}
+  body{
+    background:#87CEEB;
+    color:var(--text);
+    font-family:"Microsoft YaHei","PingFang SC",sans-serif;
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+    padding-bottom:20px;
+  }
+  header{
+    background:linear-gradient(180deg,#1a1e26,#12141a);
+    border-bottom:1px solid var(--line);
+    padding:10px 16px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  header h1{
+    font-size:18px;
+    letter-spacing:1px;
+    color:var(--gold);
+    white-space:nowrap;
+  }
+  .badge{
+    background:var(--panel2);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:4px 8px;
+    font-size:13px;
+    color:var(--muted);
+  }
+  .badge b{color:var(--text)}
+  .header-actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+  button{
+    background:#242936;
+    border:1px solid #39404f;
+    color:var(--text);
+    border-radius:8px;
+    padding:7px 12px;
+    cursor:pointer;
+    font-size:13px;
+    transition:.15s;
+  }
+  button:hover{background:#2d3442;border-color:#4b5565}
+  button.primary{background:#8a6d1c;border-color:#b9972c;color:#fff}
+  button.primary:hover{background:#a58426}
+  button.danger{background:#5e2329;border-color:#a33b44}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  #main{
+    flex:1;
+    display:grid;
+    grid-template-columns:220px 1fr 300px;
+    min-height:0;
+  }
+  aside{
+    background:var(--panel);
+    border-right:1px solid var(--line);
+    padding:12px;
+    overflow-y:auto;
+  }
+  #rightPanel{
+    border-right:none;
+    border-left:1px solid var(--line);
+  }
+  h2{
+    font-size:14px;
+    color:var(--gold);
+    margin-bottom:10px;
+    border-bottom:1px solid var(--line);
+    padding-bottom:8px;
+  }
+  .player-card{
+    background:var(--panel2);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:8px;
+    margin-bottom:8px;
+    font-size:12px;
+    position:relative;
+  }
+  .player-card.dead{opacity:.45}
+  .player-card.user{border-color:var(--gold)}
+  .player-card .pname{font-weight:bold;font-size:14px}
+  .player-card .prole{color:var(--muted);margin-top:2px}
+  .player-card .php{color:var(--green);margin-top:2px}
+  .player-card .pactions{color:var(--blue);font-size:11px;margin-top:2px}
+  .tag{
+    display:inline-block;
+    font-size:11px;
+    border-radius:4px;
+    padding:1px 6px;
+    margin-left:4px;
+  }
+  .tag.good{background:#1d3a2a;color:var(--good)}
+  .tag.wolf{background:#3a1d1d;color:var(--wolf)}
+  .tag.neutral{background:#3a351d;color:var(--neutral)}
+  .inspect-tag{
+    display:inline-block;
+    margin-left:6px;
+    padding:1px 6px;
+    border-radius:4px;
+    font-size:11px;
+    background:#2b3240;
+    color:#ffd479;
+    vertical-align:middle;
+  }
+  .teammate-tag{
+    display:inline-block;
+    margin-left:6px;
+    padding:1px 6px;
+    border-radius:4px;
+    font-size:11px;
+    background:#3a1d1d;
+    color:#ff9a9a;
+    vertical-align:middle;
+  }
+  #chatPanel{
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+    background:#0d0f13;
+  }
+  #tabs{
+    display:flex;
+    gap:6px;
+    padding:10px 12px 0;
+    flex-wrap:wrap;
+  }
+  #tabs button{
+    border-radius:8px 8px 0 0;
+    background:#171a21;
+    border:1px solid var(--line);
+    border-bottom:none;
+  }
+  #tabs button.active{
+    background:#252b36;
+    color:var(--gold);
+  }
+  #log{
+    flex:1;
+    overflow-y:auto;
+    padding:14px;
+    line-height:1.7;
+    font-size:14px;
+    background:#0d0f13;
+  }
+  .msg{margin-bottom:8px;word-break:break-all}
+  .msg .time{color:#5c6573;font-size:11px;margin-right:6px}
+  .msg.all .text{color:#dfe3e8}
+  .msg.private .text{color:#c7b3ff;font-style:italic}
+  .msg.hostprivate .text{color:#ffd479;font-style:italic}
+  .msg.notice .text{color:var(--gold);font-weight:bold}
+  .msg.broadcast .text{color:#ff8c8c}
+  .msg.system .text{color:#7fb0ff}
+
+  /* 濒死：红色大字 */
+  .msg.nearsdeath .text{
+    color:#ff4d4d;
+    font-size:20px;
+    font-weight:bold;
+  }
+
+  /* 查验：黄色大字 */
+  .msg.inspect .text{
+    color:#ffd700;
+    font-size:18px;
+    font-weight:bold;
+  }
+
+  /* 死亡：黄色大字 */
+  .msg.death .text{
+    color:#ffd700;
+    font-size:18px;
+    font-weight:bold;
+  }
+
+  /* 受伤：黄色正常字体 */
+  .msg.damage .text{
+    color:#ffd700;
+    font-size:14px;
+    font-weight:normal;
+  }
+
+  #inputRow{
+    display:flex;
+    gap:8px;
+    padding:12px;
+    margin-bottom:8px;
+    background:#12141a;
+    border-top:1px solid var(--line);
+    border-radius:10px;
+  }
+  #chatInput{
+    flex:1;
+    min-width:0;
+    background:#1b1f27;
+    border:1px solid #39404f;
+    color:var(--text);
+    border-radius:8px;
+    padding:9px 12px;
+    font-size:14px;
+    outline:none;
+  }
+  #privateSelect{
+    background:#1b1f27;
+    border:1px solid #39404f;
+    color:var(--text);
+    border-radius:8px;
+    padding:9px;
+    font-size:13px;
+    max-width:140px;
+  }
+  .panel-box{
+    background:var(--panel2);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:10px;
+    margin-bottom:10px;
+    font-size:13px;
+  }
+  .panel-box h3{
+    font-size:13px;
+    color:var(--gold);
+    margin-bottom:8px;
+  }
+  .stat-line{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px dashed #262b35}
+  .stat-line:last-child{border-bottom:none}
+  select,input[type=number],input[type=password],input[type=text]{
+    background:#1b1f27;
+    border:1px solid #39404f;
+    color:var(--text);
+    border-radius:8px;
+    padding:9px;
+    font-size:13px;
+    outline:none;
+  }
+  .modal-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.65);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:50;
+    padding:12px;
+  }
+  .modal{
+    background:#171a21;
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:22px;
+    width:520px;
+    max-width:95vw;
+    max-height:90vh;
+    overflow-y:auto;
+  }
+  .modal h2{font-size:18px;color:var(--gold);margin-bottom:14px}
+  .modal label{display:block;margin:10px 0 4px;font-size:13px;color:var(--muted)}
+  .modal select,.modal input{width:100%}
+  .modal .row{display:flex;gap:10px}
+  .modal .row>div{flex:1}
+  .hidden{display:none !important}
+  #actionPanel button{margin:2px 0}
+  .targetPickBtn{
+    display:block;
+    width:100%;
+    text-align:left;
+  }
+
+  @media (max-width:900px){
+    #main{grid-template-columns:160px 1fr}
+    #rightPanel{display:none}
+  }
+
+  @media (max-width:700px){
+    body{
+      height:auto;
+      min-height:100vh;
+      overflow-y:auto;
+      padding-bottom:20px;
+    }
+    header{
+      padding:8px 10px;
+      gap:6px;
+    }
+    header h1{
+      font-size:15px;
+    }
+    .badge{
+      font-size:11px;
+      padding:3px 6px;
+    }
+    .header-actions{
+      width:100%;
+      margin-left:0;
+      justify-content:space-between;
+    }
+    .header-actions button{
+      flex:1;
+      padding:8px 6px;
+      font-size:12px;
+    }
+    #main{
+      display:flex;
+      flex-direction:column;
+      min-height:0;
+    }
+    #playersPanel{
+      order:1;
+      max-height:180px;
+      border-right:none;
+      border-bottom:1px solid var(--line);
+      padding:8px;
+    }
+    #playersPanel h2{
+      margin-bottom:6px;
+      font-size:13px;
+    }
+    #playerList{
+      display:flex;
+      gap:8px;
+      overflow-x:auto;
+      padding-bottom:4px;
+    }
+    .player-card{
+      min-width:140px;
+      flex:0 0 auto;
+      margin-bottom:0;
+    }
+    #chatPanel{
+      order:2;
+      flex:1;
+      min-height:50vh;
+    }
+    #log{
+      min-height:40vh;
+      padding:10px;
+      font-size:13px;
+    }
+    #tabs{
+      padding:8px 8px 0;
+    }
+    #tabs button{
+      font-size:12px;
+      padding:6px 8px;
+    }
+    #inputRow{
+      flex-wrap:wrap;
+      padding:8px;
+      margin-bottom:12px;
+      border-radius:8px;
+    }
+    #privateSelect{
+      max-width:100%;
+      flex:1 1 120px;
+    }
+    #chatInput{
+      flex:1 1 100%;
+      order:2;
+    }
+    #sendBtn{
+      flex:1 1 80px;
+      order:3;
+    }
+    #rightPanel{
+      display:block;
+      order:3;
+      border-left:none;
+      border-top:1px solid var(--line);
+      max-height:none;
+      overflow:visible;
+      padding:8px;
+    }
+    .panel-box{
+      margin-bottom:8px;
+    }
+    .modal{
+      width:95vw;
+      padding:16px;
+    }
+    #actionPanel select{
+      width:100%;
+      margin-bottom:6px;
+    }
+    #actionPanel button{
+      padding:8px 10px;
+    }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>多职业狼人杀 · AI 聊天群</h1>
+  <span class="badge">阶段：<b id="phaseText">未开始</b></span>
+  <span class="badge">第 <b id="dayText">-</b> 天</span>
+  <span class="badge">回合：<b id="turnText">-</b></span>
+  <span class="badge">存活：<b id="aliveText">-</b></span>
+  <div class="header-actions">
+    <button id="btnSetup">设置 / 新游戏</button>
+    <button id="btnNextTurn" class="primary">下一回合</button>
+    <button id="btnAuto" class="primary">自动进行</button>
+  </div>
+</header>
+
+<div id="main">
+  <aside id="playersPanel">
+    <h2>玩家列表</h2>
+    <div id="playerList"></div>
+  </aside>
+
+  <section id="chatPanel">
+    <div id="tabs">
+      <button data-tab="all" class="active">全体频道</button>
+      <button data-tab="private">玩家私聊</button>
+      <button data-tab="host">主持人私聊</button>
+    </div>
+    <div id="log"></div>
+    <div id="inputRow">
+      <select id="privateSelect">
+        <option value="">选择私聊对象</option>
+      </select>
+      <input id="chatInput" placeholder="输入消息；玩家可输入 /w ⑤ 内容 私聊；/attack ⑤；/skill 缴械 ⑤；/move 3；/end 结束行动" autocomplete="off">
+      <button id="sendBtn">发送</button>
+    </div>
+  </section>
+
+  <aside id="rightPanel">
+    <h2>主持人控制台</h2>
+    <div class="panel-box">
+      <h3>游戏状态</h3>
+      <div id="hostState"></div>
+    </div>
+    <div class="panel-box">
+      <h3>我的角色</h3>
+      <div id="myRolePanel">未加入玩家模式</div>
+    </div>
+    <div class="panel-box">
+      <h3>我的行动</h3>
+      <div id="actionPanel"></div>
+    </div>
+    <div class="panel-box">
+      <h3>积分</h3>
+      <div id="scorePanel">-</div>
+    </div>
+  </aside>
+</div>
+
+<div id="setupModal" class="modal-overlay">
+  <div class="modal">
+    <h2>游戏设置</h2>
+    <label>对局人数（不能少于等于 6）</label>
+    <select id="setPlayerCount">
+      <option value="7">7 人局</option>
+      <option value="8">8 人局</option>
+      <option value="9">9 人局</option>
+      <option value="10" selected>10 人局</option>
+    </select>
+
+    <label>我的身份</label>
+    <select id="setMode">
+      <option value="host">观战 / 主持人</option>
+      <option value="player">我是玩家</option>
+    </select>
+
+    <div id="seatRow" class="hidden">
+      <label>选择你要扮演的座位</label>
+      <select id="setSeat"></select>
+    </div>
+
+    <label>AI 模型选择</label>
+    <select id="setAiProvider">
+      <option value="deepseek-flash" selected>DeepSeek Flash</option>
+      <option value="deepseek-chat">DeepSeek Chat</option>
+      <option value="deepseek-reasoner">DeepSeek Reasoner</option>
+      <option value="openai">OpenAI GPT-4o-mini</option>
+      <option value="custom">自定义</option>
+    </select>
+
+    <label>API Endpoint（可自动填充，也可修改）</label>
+    <input id="setEndpoint" type="text" placeholder="留空则使用内置 AI 兜底">
+
+    <label>API Key</label>
+    <input id="setKey" type="password" placeholder="填入所选 AI 的 Key">
+
+    <label>模型（可自动填充，也可修改）</label>
+    <input id="setModel" type="text" value="deepseek-flash">
+
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button id="btnStartGame" class="primary" style="flex:1">新游戏</button>
+      <button id="btnSettleInModal" class="danger" style="flex:1">立即结算</button>
+      <button id="btnCancelSetup">取消</button>
+    </div>
+  </div>
+</div>
+
+<div id="targetModal" class="modal-overlay hidden">
+  <div class="modal">
+    <h2>选择目标</h2>
+    <div id="targetList" style="display:flex;flex-direction:column;gap:8px;margin:10px 0"></div>
+    <button id="btnCancelTarget">取消</button>
+  </div>
+</div>
+
+<script>
+/* ===================== 职业数据 ===================== */
+const ROLES = {
+  armed: [
+    {name:'防暴兵',camp:'好人',attr:'武装',hp:8,atk:5,atkDay:1,atkNight:0,roundLimit:2,skill:'缴械',desc:'缴械：夺取视野内一名玩家一次攻击次数，每天1次/局2次；受行动次数获得护盾，上限5'},
+    {name:'猎人',camp:'好人',attr:'武装',hp:8,atk:6,atkDay:1,atkNight:0,roundLimit:1,skill:'陷阱',desc:'选择视野内一名玩家造成6点伤害',nightSpeed:1},
+    {name:'屠夫',camp:'好人',attr:'武装',hp:5,atk:5,atkDay:3,atkNight:0,roundLimit:2,skill:'',desc:'无'},
+    {name:'屠狼者',camp:'好人',attr:'武装',hp:8,atk:5,atkDay:0,atkNight:1,roundLimit:1,skill:'斩杀',desc:'斩杀四格内血量≤5玩家，白天/夜晚各1次',nightSpeed:2},
+    {name:'锦衣卫',camp:'好人',attr:'武装',hp:8,atk:6,atkDay:1,atkNight:0,roundLimit:1,skill:'视察',desc:'查验四格内一名玩家，局2次；使用后可与任意玩家换位',nightSpeed:1},
+    {name:'警卫',camp:'好人',attr:'武装',hp:8,atk:8,atkDay:1,atkNight:0,roundLimit:1,skill:'',desc:'无',nightSpeed:1},
+    {name:'游侠',camp:'好人',attr:'武装',hp:6,atk:4,atkDay:0,atkNight:2,roundLimit:1,skill:'',desc:'夜晚远程攻击',nightSpeed:2,ranged:true},
+    {name:'精灵',camp:'好人',attr:'武装',hp:6,atk:4,atkDay:2,atkNight:0,roundLimit:1,skill:'',desc:'白天远程攻击',daySpeed:1,ranged:true},
+    {name:'双料特工',camp:'好人',attr:'武装',hp:8,atk:6,atkDay:0,atkNight:1,roundLimit:1,skill:'',desc:'自动加入狼人阵营，无队伍效果，查验显示为狼人',nightSpeed:2}
+  ],
+  holy: [
+    {name:'法老',camp:'好人',attr:'神圣',hp:6,atk:2,atkDay:0,atkNight:0,roundLimit:1,skill:'沙尘暴_左/沙尘暴_右',desc:'沙尘暴_左：攻击左边三个玩家；沙尘暴_右：攻击右边三个玩家',nightSpeed:1},
+    {name:'审判者',camp:'好人',attr:'神圣',hp:6,atk:2,atkDay:0,atkNight:0,roundLimit:1,skill:'查证/审判',desc:'查验左/右1格玩家；对非己方造成8伤',nightSpeed:1},
+    {name:'天使',camp:'好人',attr:'神圣',hp:8,atk:0,atkDay:0,atkNight:0,roundLimit:1,skill:'圣光',desc:'复活左/右1格尸体为平民',daySpeed:1},
+    {name:'玩偶师',camp:'好人',attr:'神圣',hp:8,atk:2,atkDay:0,atkNight:0,roundLimit:1,skill:'窥命',desc:'记录左/右1格玩家职业，获得赋生复活尸体',nightSpeed:3},
+    {name:'骑士',camp:'好人',attr:'神圣',hp:8,atk:6,atkDay:0,atkNight:0,roundLimit:1,skill:'决斗',desc:'决斗左/右1格玩家，己方则自己受伤害，反之对方受伤害',daySpeed:1},
+    {name:'执灯人',camp:'好人',attr:'神圣',hp:8,atk:2,atkDay:0,atkNight:0,roundLimit:1,skill:'曙光',desc:'全体同阵营移动力+1',nightSpeed:1},
+    {name:'铸剑师',camp:'好人',attr:'神圣',hp:8,atk:2,atkDay:0,atkNight:0,roundLimit:1,skill:'剑魂',desc:'给予视野内一名玩家一次攻击次数，白天/夜晚各1次'}
+  ],
+  scout: [
+    {name:'法医',camp:'好人',attr:'侦察',hp:10,atk:2,atkDay:2,atkNight:0,roundLimit:1,skill:'',desc:'查验所有受伤玩家；伤害未查验同阵营后为其恢复2血'},
+    {name:'预言家',camp:'好人',attr:'侦察',hp:10,atk:2,atkDay:0,atkNight:0,roundLimit:1,skill:'预言',desc:'无视距离查验任意玩家，若已查验则真实查验',nightSpeed:1},
+    {name:'密探',camp:'好人',attr:'侦察',hp:10,atk:2,atkDay:0,atkNight:0,roundLimit:1,skill:'真相',desc:'查验左右两格内所有玩家，获得1回合隐身',nightSpeed:1},
+    {name:'先知',camp:'好人',attr:'侦察',hp:10,atk:2,atkDay:0,atkNight:0,roundLimit:1,skill:'真视之眼',desc:'放置真视之眼持续查验该格玩家',daySpeed:-1},
+    {name:'读心师',camp:'好人',attr:'侦察',hp:10,atk:2,atkDay:0,atkNight:0,roundLimit:1,skill:'',desc:'白天持续查验左右1格玩家',daySpeed:1},
+    {name:'科学家',camp:'好人',attr:'侦察',hp:10,atk:2,atkDay:0,atkNight:0,roundLimit:1,skill:'监测',desc:'查验左右1格玩家及同血量玩家'}
+  ],
+  wolfMain: [
+    {name:'狼王',camp:'狼人',attr:'主攻',hp:8,atk:4,atkDay:0,atkNight:1,roundLimit:1,skill:'震慑',desc:'销毁左右1格非己方武器技能并造成2伤'},
+    {name:'厉鬼',camp:'狼人',attr:'主攻',hp:6,atk:6,atkDay:0,atkNight:1,roundLimit:1,skill:'',desc:'死亡时转变为濒死形态'},
+    {name:'夜魔',camp:'狼人',attr:'主攻',hp:6,atk:4,atkDay:0,atkNight:1,roundLimit:1,skill:'',desc:'夜晚所有同阵营攻击次数+1'},
+    {name:'吸血鬼',camp:'狼人',attr:'主攻',hp:5,atk:5,atkDay:1,atkNight:1,roundLimit:1,skill:'',desc:'恢复三格内受伤玩家受到的1/2伤害血量'},
+    {name:'食人魔',camp:'狼人',attr:'主攻',hp:4,atk:3,atkDay:0,atkNight:2,roundLimit:1,skill:'嗜血',desc:'消除左右两格尸体，攻击力+1且血量+4'},
+    {name:'雷电法王',camp:'狼人',attr:'主攻',hp:6,atk:8,atkDay:0,atkNight:0,roundLimit:1,skill:'天雷',desc:'标记任意方向两格位置，一回合后造成8伤'},
+    {name:'影狼',camp:'狼人',attr:'主攻',hp:8,atk:4,atkDay:0,atkNight:2,roundLimit:2,skill:'影袭',desc:'选择视野内一名非己方玩家，瞬移到他右边一格'},
+    {name:'冥王',camp:'狼人',attr:'主攻',hp:8,atk:6,atkDay:0,atkNight:1,roundLimit:1,skill:'还魂',desc:'将左右两格尸体复活为小狼',nightSpeed:1},
+    {name:'种狼',camp:'狼人',attr:'主攻',hp:9,atk:7,atkDay:0,atkNight:1,roundLimit:1,skill:'',desc:'致命伤害时将目标感染为小狼'}
+  ],
+  wolfFunc: [
+    {name:'诡狼',camp:'狼人',attr:'功能',hp:8,atk:4,atkDay:0,atkNight:1,roundLimit:1,skill:'',desc:'在场时所有查验结果必定错误'},
+    {name:'空间使者',camp:'狼人',attr:'功能',hp:8,atk:6,atkDay:0,atkNight:1,roundLimit:1,skill:'换位',desc:'选择视野内一名玩家并与其互换位置'},
+    {name:'炸弹狼',camp:'狼人',attr:'功能',hp:8,atk:6,atkDay:0,atkNight:0,roundLimit:1,skill:'炸弹',desc:'给予炸弹，黎明或黄昏爆炸'},
+    {name:'孢子',camp:'狼人',attr:'功能',hp:2,atk:2,atkDay:1,atkNight:2,roundLimit:1,skill:'',desc:'范围伤害；攻击尸体转化为孢子；致命伤害感染',ranged:true},
+    {name:'隐狼',camp:'狼人',attr:'功能',hp:6,atk:5,atkDay:1,atkNight:1,roundLimit:1,skill:'',desc:'无队伍效果，查验显示好人'}
+  ],
+  neutral: [
+    {name:'木乃伊',camp:'中立',attr:'和平',hp:6,atk:4,atkDay:1,atkNight:0,roundLimit:1,skill:'',desc:'死亡后变为尸壳，存活到最后共同获胜'},
+    {name:'赌怪',camp:'中立',attr:'危险',hp:8,atk:2,atkDay:0,atkNight:0,roundLimit:1,skill:'猜测',desc:'猜测任意玩家阵营，正确3次单独获胜'},
+    {name:'小丑',camp:'中立',attr:'和平',hp:6,atk:0,atkDay:1,atkNight:1,roundLimit:99,skill:'',desc:'白天死亡单独获胜',nightSpeed:1},
+    {name:'投机者',camp:'中立',attr:'危险',hp:8,atk:6,atkDay:2,atkNight:0,roundLimit:99,skill:'',desc:'存活至游戏结束且场上≤4人单独获胜'},
+    {name:'死灵法师',camp:'中立',attr:'危险',hp:8,atk:3,atkDay:0,atkNight:0,roundLimit:1,skill:'死亡召唤/死亡脉冲',desc:'黄昏复活尸体为骷髅，夜晚脉冲伤害并强化骷髅'},
+    {name:'僵尸',camp:'中立',attr:'危险',hp:9,atk:6,atkDay:2,atkNight:1,roundLimit:1,skill:'',desc:'致命伤害感染为僵尸，同阵营≥4或全是僵尸获胜',nightSpeed:1},
+    {name:'秃鹫',camp:'中立',attr:'危险',hp:6,atk:2,atkDay:0,atkNight:0,roundLimit:1,skill:'吞噬',desc:'消除移动范围内尸体，每个+8血，血量≥25获胜'},
+    {name:'末日预言家',camp:'中立',attr:'危险',hp:8,atk:2,atkDay:0,atkNight:0,roundLimit:1,skill:'观望/抹杀',desc:'查验；抹杀代码击杀；场上只有自己获胜',nightSpeed:1}
+  ],
+  derived: [
+    {name:'双料特工（暴露）',camp:'好人',attr:'武装',hp:8,atk:6,atkDay:1,atkNight:1,roundLimit:99,skill:'',desc:'继承原职业数值，白天攻击次数+1'},
+    {name:'厉鬼（濒死）',camp:'狼人',attr:'主攻',hp:4,atk:2,atkDay:0,atkNight:0,roundLimit:99,skill:'',desc:'黄昏变回厉鬼并重置血量'},
+    {name:'小狼',camp:'狼人',attr:'主攻',hp:4,atk:4,atkDay:0,atkNight:1,roundLimit:1,skill:'',desc:'继承转化来源阵营'},
+    {name:'平民',camp:'好人',attr:'武装',hp:4,atk:2,atkDay:0,atkNight:0,roundLimit:99,skill:'',desc:'继承转化来源阵营'},
+    {name:'尸壳（濒死）',camp:'中立',attr:'和平',hp:9,atk:6,atkDay:1,atkNight:0,roundLimit:99,skill:'',desc:'持续3点护盾；场上至少4个尸壳或全是尸壳获胜'},
+    {name:'骷髅',camp:'中立',attr:'危险',hp:3,atk:6,atkDay:0,atkNight:1,roundLimit:99,skill:'',desc:'死灵法师召唤物，受死亡脉冲+3血',nightSpeed:1}
+  ]
+};
+
+const ROLE_POOL = {
+  armed: ROLES.armed.filter(r=>!r.derived),
+  holy: ROLES.holy.filter(r=>!r.derived),
+  scout: ROLES.scout.filter(r=>!r.derived),
+  wolfMain: ROLES.wolfMain.filter(r=>!r.derived),
+  wolfFunc: ROLES.wolfFunc.filter(r=>!r.derived),
+  neutral: ROLES.neutral.filter(r=>!r.derived)
+};
+
+/* ===================== AI 模型预设 ===================== */
+const AI_PROVIDERS = {
+  'deepseek-flash': {label:'DeepSeek Flash', endpoint:'https://api.deepseek.com/v1/chat/completions', model:'deepseek-flash'},
+  'deepseek-chat': {label:'DeepSeek Chat', endpoint:'https://api.deepseek.com/v1/chat/completions', model:'deepseek-chat'},
+  'deepseek-reasoner': {label:'DeepSeek Reasoner', endpoint:'https://api.deepseek.com/v1/chat/completions', model:'deepseek-reasoner'},
+  'openai': {label:'OpenAI GPT-4o-mini', endpoint:'https://api.openai.com/v1/chat/completions', model:'gpt-4o-mini'},
+  'custom': {label:'自定义', endpoint:'', model:''}
+};
+
+const AI_INTERNAL_GUIDE = `侦察职业应主动使用查验技能获取信息，不要因为看不到职业就只聊天。
+神圣职业尽可帮助。
+武装职业尽可杀狼。
+狼人努力杀好人。
+中立努力完成任务。
+白天不要轻易攻击中立。
+如果你是狼人：
+- 隐狼不会出现在你的队友列表中，队友异常少时可能是隐狼
+- 双料特工会出现在你的队友列表中，但他不属于真正的狼人队伍，且没有队伍效果`;
+
+function applyProvider(){
+  const v = $('setAiProvider').value;
+  const preset = AI_PROVIDERS[v];
+  if(!preset) return;
+  if(v !== 'custom'){
+    $('setEndpoint').value = preset.endpoint;
+    $('setModel').value = preset.model;
+  }
+}
+
+/* ===================== 游戏状态 ===================== */
+const state = {
+  started:false,
+  ended:false,
+  mode:'host',
+  userSeat:null,
+  players:[],
+  phase:'lobby',
+  phaseIndex:0,
+  day:0,
+  turn:0,
+  api:{endpoint:'',key:'',model:'deepseek-flash'},
+  currentTab:'all',
+  privateTarget:null,
+  auto:false,
+  autoTimer:null,
+  chatLogs:[],
+  scores:{},
+  commonNeutrals:[],
+  soloNeutral:null,
+  winner:null,
+  turnSeq:0,
+  currentTurnPlayerId:null,
+  userTurnActive:false,
+  turnQueue:[],
+  turnQueueIndex:0,
+  userTurnInterval:null,
+  userTurnSeconds:60,
+  paused:false,
+  pendingSkill:null,
+  freeChatTimer:null,
+  freeChatBusy:false,
+  aiMemory: {}
+};
+
+const DAYS = 4;
+const PHASE_SEQ = [
+  {key:'dawn',label:'黎明',turns:1},
+  {key:'day',label:'白天',turns:4},
+  {key:'dusk',label:'黄昏',turns:1},
+  {key:'night',label:'夜晚',turns:3}
+];
+
+/* ===================== 工具函数 ===================== */
+function $(id){return document.getElementById(id)}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+function rand(arr){return arr[Math.floor(Math.random()*arr.length)]}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function phaseLabel(){return PHASE_SEQ.find(p=>p.key===state.phase)?.label||''}
+function currentPhaseDef(){return PHASE_SEQ.find(p=>p.key===state.phase)}
+function alivePlayers(){return state.players.filter(p=>p.alive)}
+function goodAlive(){return alivePlayers().filter(p=>p.camp==='好人').length}
+function wolfAlive(){return alivePlayers().filter(p=>p.camp==='狼人').length}
+function dangerousAlive(){return alivePlayers().filter(p=>p.camp==='中立'&&p.attr==='危险').length}
+function peaceAlive(){return alivePlayers().filter(p=>p.camp==='中立'&&p.attr==='和平').length}
+
+function getPlayer(id){
+  id = String(id).replace('⑩','10').replace('⑨','9').replace('⑧','8').replace('⑦','7').replace('⑥','6').replace('⑤','5').replace('④','4').replace('③','3').replace('②','2').replace('①','1');
+  const n = parseInt(id);
+  if(isNaN(n)) return null;
+  return state.players.find(p=>p.id===n)||null;
+}
+function seatName(id){
+  const arr = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩'];
+  return arr[id-1]||String(id);
+}
+function posOf(p){return state.players.indexOf(p)}
+
+function visibleRange(p){
+  const sp = getSpeed(p);
+  if(sp>=3) return 99;
+  if(sp===2) return 2;
+  return 0;
+}
+function getVisiblePlayers(p){
+  const range = visibleRange(p);
+  if(range>=99) return alivePlayers();
+  if(range<=0) return [p];
+  const idx = posOf(p);
+  return alivePlayers().filter(o=>Math.abs(posOf(o)-idx)<=range);
+}
+function isInRange(a,b,type='melee'){
+  if(!a.alive||!b.alive) return false;
+  const dist = Math.abs(posOf(a)-posOf(b));
+  if(type==='ranged') return dist <= visibleRange(a);
+  return dist <= 2;
+}
+function getAttackableTargets(p){
+  const rangeType = p.ranged?'ranged':'melee';
+  return getVisiblePlayers(p).filter(o=>o!==p&&o.alive&&isInRange(p,o,rangeType));
+}
+
+function getSpeed(p){
+  if(!p.alive) return 1;
+  let sp = 3;
+  const ph = state.phase;
+  if(p.camp==='好人' && ph==='night') sp -= 2;
+  if(p.inspectedCamp==='狼人' && ph==='day') sp -= 1;
+  if(p.camp==='中立' && ph==='night') sp -= 1;
+  if(p.roleData){
+    if(ph==='night' && p.roleData.nightSpeed) sp += p.roleData.nightSpeed;
+    if(ph==='day' && p.roleData.daySpeed) sp += p.roleData.daySpeed;
+  }
+  return clamp(sp,1,4);
+}
+
+function getPhaseAttackLimit(p){
+  const ph = state.phase;
+  let base = 0;
+  if(ph==='day') base = p.atkDay||0;
+  if(ph==='night') base = p.atkNight||0;
+  if(ph==='night' && p.camp==='狼人' && state.players.some(o=>o.alive&&o.role==='夜魔')){
+    base += 1;
+  }
+  return base;
+}
+
+function getSkillChoices(p){
+  if(!p.roleData || !p.roleData.skill) return [];
+  return p.roleData.skill.split('/').map(s=>s.trim()).filter(Boolean);
+}
+
+const NO_TARGET_SKILLS = [
+  '沙尘暴_左',
+  '沙尘暴_右',
+  '曙光',
+  '真相',
+  '死亡召唤',
+  '吞噬',
+  '嗜血',
+  '震慑',
+  '圣光',
+  '还魂'
+];
+
+const DISTANCE_IGNORE_SKILLS = [
+  '预言',
+  '观望',
+  '抹杀',
+  '猜测'
+];
+
+/* ===================== 队友 / 防友伤 ===================== */
+function isTeammate(a,b){
+  if(!a || !b || a===b) return false;
+
+  if(a.camp==='狼人' && b.role==='双料特工') return true;
+  if(b.camp==='狼人' && a.role==='双料特工') return true;
+
+  if(a.camp==='狼人' && b.camp==='狼人'){
+    if(a.role==='隐狼' || b.role==='隐狼') return false;
+    return true;
+  }
+
+  if(a.camp==='中立' && b.camp==='中立'){
+    if(a.role==='僵尸' && b.role==='僵尸') return true;
+    if((a.role==='死灵法师'||a.role==='骷髅') &&
+       (b.role==='死灵法师'||b.role==='骷髅')) return true;
+  }
+
+  return false;
+}
+
+function hasTeamProtection(a,b){
+  if(!a || !b || a===b) return false;
+
+  if(a.role==='双料特工' || b.role==='双料特工') return false;
+  if(a.role==='隐狼' || b.role==='隐狼') return false;
+
+  if(a.camp==='狼人' && b.camp==='狼人') return true;
+
+  if(a.camp==='中立' && b.camp==='中立'){
+    if(a.role==='僵尸' && b.role==='僵尸') return true;
+    if((a.role==='死灵法师'||a.role==='骷髅') &&
+       (b.role==='死灵法师'||b.role==='骷髅')) return true;
+  }
+
+  return false;
+}
+
+function getTeammates(user){
+  if(!user) return [];
+  return state.players.filter(p=>p!==user && isTeammate(user,p));
+}
+
+/* ===================== 技能冷却 ===================== */
+const SKILL_LIMITS = {
+  '缴械': { perDay: 1, perGame: 2 },
+  '陷阱': { phase: 'night', perDay: 1, perGame: 2 },
+  '斩杀': { perPhase: 1, phases: ['day', 'night'] },
+  '视察': { perGame: 2 },
+  '沙尘暴': { perPhase: 1, phases: ['day', 'night'] },
+  '查证': { perDay: 1, group: '审判' },
+  '审判': { perDay: 1, group: '审判' },
+  '圣光': { perDay: 1 },
+  '窥命': { phase: 'night', perDay: 1, perGame: 2 },
+  '决斗': { phase: 'day', perDay: 1 },
+  '曙光': { phase: 'night', perDay: 1, perGame: 2 },
+  '剑魂': { perPhase: 1, phases: ['day', 'night'] },
+  '预言': { perPhase: 1, phases: ['day', 'night'] },
+  '真相': { phase: 'night', perDay: 1, perGame: 2 },
+  '真视之眼': { phase: 'day', perDay: 1, perGame: 3 },
+  '震慑': { perPhase: 1, phases: ['day', 'night'] },
+  '嗜血': { perDay: 1 },
+  '天雷': { phase: 'night', perDay: 1 },
+  '影袭': { phase: 'night', perDay: 1 },
+  '换位': { perPhase: 1, phases: ['day', 'night'] },
+  '死亡召唤': { phase: 'dusk', perDay: 1 },
+  '死亡脉冲': { phase: 'night', perDay: 1 },
+  '观望': { phase: 'day', perDay: 1, perGame: 2 },
+  '抹杀': { perPhase: 1 },
+  '猜测': { perDay: 1 },
+  '吞噬': {},
+  '炸弹': { phases: ['day', 'night'], perPhase: 1 },
+  '还魂': { phase: 'night', perDay: 1 }
+};
+
+function getSkillGroup(skillName){
+  if(skillName.startsWith('沙尘暴_')) return '沙尘暴';
+  if(skillName === '查证' || skillName === '审判') return '审判';
+  return skillName;
+}
+
+function getSkillLimit(skillName){
+  if(skillName.startsWith('沙尘暴_')) return SKILL_LIMITS['沙尘暴'];
+  return SKILL_LIMITS[skillName] || {};
+}
+
+function canUseSkill(p, skillName){
+  const limit = getSkillLimit(skillName);
+  if(!limit || Object.keys(limit).length === 0) return true;
+  if(limit.phase && state.phase !== limit.phase) return false;
+  if(limit.phases && !limit.phases.includes(state.phase)) return false;
+
+  const group = getSkillGroup(skillName);
+  const records = p.skillUseRecords || [];
+  const gameCount = records.filter(r=>r.group === group).length;
+  if(limit.perGame && gameCount >= limit.perGame) return false;
+
+  const dayCount = records.filter(r=>r.group === group && r.day === state.day).length;
+  if(limit.perDay && dayCount >= limit.perDay) return false;
+
+  const phaseCount = records.filter(r=>r.group === group && r.day === state.day && r.phase === state.phase).length;
+  if(limit.perPhase && phaseCount >= limit.perPhase) return false;
+
+  return true;
+}
+
+function markSkillUsed(p, skillName){
+  if(!p.skillUseRecords) p.skillUseRecords = [];
+  p.skillUseRecords.push({
+    group: getSkillGroup(skillName),
+    day: state.day,
+    phase: state.phase
+  });
+}
+
+/* ===================== 被动技能 ===================== */
+function runPassives(){
+  if(state.phase === 'day'){
+    const reader = state.players.find(p=>p.alive && p.role==='读心师');
+    if(reader){
+      const idx = posOf(reader);
+      for(const d of [-1, 1]){
+        const target = state.players[idx + d];
+        if(target && target.alive && target.inspectedCamp === null){
+          inspectPlayer(reader, target, false);
+        }
+      }
+    }
+  }
+
+  const fayi = state.players.find(p=>p.alive && p.role==='法医');
+  if(fayi){
+    alivePlayers().filter(o=>o.hp < o.maxHp && o.inspectedCamp === null).forEach(o=>{
+      inspectPlayer(fayi, o, false);
+    });
+  }
+
+  state.players.filter(p=>p.alive && p.role==='尸壳（濒死）').forEach(p=>{
+    p.shield = Math.max(p.shield || 0, 3);
+  });
+
+  state.players.filter(p=>p.alive && p.role==='防暴兵').forEach(p=>{
+    p.shield = Math.min(5, (p.shield || 0) + 1);
+  });
+
+  const yinlang = state.players.find(p=>p.alive && p.role==='隐狼');
+  if(yinlang){
+    const triggered = yinlang.trueInspectedRole || wolfAlive() === 1;
+    if(triggered){
+      yinlang.atkDay = Math.max(0, (yinlang.roleData?.atkDay || 1) - 1);
+      yinlang.atkNight = (yinlang.roleData?.atkNight || 1) + 1;
+    }else{
+      yinlang.atkDay = yinlang.roleData?.atkDay || 1;
+      yinlang.atkNight = yinlang.roleData?.atkNight || 1;
+    }
+  }
+
+  const shuang = state.players.find(p=>p.alive && p.role==='双料特工');
+  if(shuang && goodAlive() === 1){
+    shuang.role = '双料特工（暴露）';
+    broadcast(`${shuang.name} 进入暴露状态`);
+  }
+
+  if(state.phase === 'night' && state.turn === 1){
+    const xuegui = state.players.find(p=>p.alive && p.role==='吸血鬼');
+    if(xuegui){
+      alivePlayers().filter(o=>o.hp < o.maxHp && Math.abs(posOf(o)-posOf(xuegui)) <= 3).forEach(o=>{
+        o.hp = Math.min(o.maxHp, o.hp + 1);
+      });
+    }
+  }
+
+  if(state.phase === 'dusk'){
+    state.players.filter(p=>p.alive && p.role==='厉鬼（濒死）').forEach(p=>{
+      p.role = '厉鬼';
+      p.hp = 6;
+      p.maxHp = 6;
+      p.atk = 6;
+      p.atkDay = 0;
+      p.atkNight = 1;
+      p.roundLimit = 1;
+      broadcast(`${p.name} 在黄昏变回厉鬼并重置血量`);
+    });
+  }
+}
+
+/* ===================== 改属性指令辅助 ===================== */
+function findRoleByName(name){
+  const allRoles = Object.values(ROLES).flat();
+  return allRoles.find(r=>r.name===name) || null;
+}
+
+function resolveTargets(selector, user){
+  if(selector === 's') return [user];
+  if(selector === 'a') return state.players.slice();
+  if(selector === 'p') return state.players.filter(p=>p!==user);
+  const p = getPlayer(selector);
+  return p ? [p] : [];
+}
+
+function setPlayerRole(p, roleData, campNum){
+  p.role = roleData.name;
+  p.roleData = roleData;
+  p.camp = campNum === 1 ? '好人' : '狼人';
+  p.attr = roleData.attr;
+  p.maxHp = roleData.hp;
+  p.hp = roleData.hp;
+  p.atk = roleData.atk;
+  p.atkDay = roleData.atkDay || 0;
+  p.atkNight = roleData.atkNight || 0;
+  p.roundLimit = roleData.roundLimit || 1;
+  p.ranged = !!roleData.ranged;
+  p.alive = true;
+  p.corpse = true;
+  p.corpsePos = null;
+
+  p.skillUsedThisTurn = false;
+  p.usedSkillChoice = null;
+  p.phaseAttacksLeft = getPhaseAttackLimit(p);
+  p.roundAttacksLeft = p.roundLimit >= 99 ? 99 : (p.roundLimit || 1);
+  p.actionsLeft = 2;
+  p.actionConsumed = false;
+}
+
+function handlePlayerAdminCommand(text){
+  const user = state.players.find(p=>p.isUser);
+  if(!user) return false;
+
+  let m = text.match(/^\/([^\s@]+)\s+@(s|a|p|[①-⑩0-9]+)\s+([12])$/);
+  if(m){
+    const roleName = m[1];
+    const selector = m[2];
+    const campNum = parseInt(m[3]);
+    const roleData = findRoleByName(roleName);
+
+    if(!roleData){
+      system(`未找到职业：${roleName}`);
+      return true;
+    }
+
+    const targets = resolveTargets(selector, user);
+    if(!targets.length){
+      system('没有找到目标');
+      return true;
+    }
+
+    targets.forEach(p=>setPlayerRole(p, roleData, campNum));
+    system(`已将 ${targets.map(p=>p.name).join('、')} 重新分配为 ${roleName}，阵营为 ${campNum===1?'好人':'狼人'}`);
+    renderAll();
+    return true;
+  }
+
+  m = text.match(/^\/血量\s+@(s|a|p|[①-⑩0-9]+)\s+(-?\d+(?:\.\d+)?)$/);
+  if(m){
+    const selector = m[1];
+    const value = parseFloat(m[2]);
+    const targets = resolveTargets(selector, user);
+    if(!targets.length){ system('没有找到目标'); return true; }
+    targets.forEach(p=>{
+      p.hp = value;
+      if(value > p.maxHp) p.maxHp = value;
+      if(value > 0) p.alive = true;
+    });
+    system(`已将 ${targets.map(p=>p.name).join('、')} 的血量改为 ${value}`);
+    renderAll();
+    return true;
+  }
+
+  m = text.match(/^\/护盾\s+@(s|a|p|[①-⑩0-9]+)\s+(-?\d+(?:\.\d+)?)$/);
+  if(m){
+    const selector = m[1];
+    const value = parseFloat(m[2]);
+    const targets = resolveTargets(selector, user);
+    if(!targets.length){ system('没有找到目标'); return true; }
+    targets.forEach(p=>{ p.shield = value; });
+    system(`已将 ${targets.map(p=>p.name).join('、')} 的护盾改为 ${value}`);
+    renderAll();
+    return true;
+  }
+
+  m = text.match(/^\/伤害\s+@(s|a|p|[①-⑩0-9]+)\s+(-?\d+(?:\.\d+)?)$/);
+  if(m){
+    const selector = m[1];
+    const value = parseFloat(m[2]);
+    const targets = resolveTargets(selector, user);
+    if(!targets.length){ system('没有找到目标'); return true; }
+    targets.forEach(p=>{ p.atk = value; });
+    system(`已将 ${targets.map(p=>p.name).join('、')} 的基础伤害改为 ${value}（不影响技能自带伤害）`);
+    renderAll();
+    return true;
+  }
+
+  return false;
+}
+
+/* ===================== 主持人公告 / 聊天 ===================== */
+function addLog(type, from, text, extra){
+  const time = new Date().toLocaleTimeString('zh-CN',{hour12:false});
+  state.chatLogs.push(Object.assign({type,from,text,time}, extra||{}));
+  renderLog();
+}
+function hostAll(text){ addLog('notice','主持人',`〔全体通报〕${text}`); }
+function broadcast(text){ addLog('broadcast','主持人',`〔全场通报〕${text}`); }
+function system(text){ addLog('system','系统',text); }
+function playerSay(from,text){ addLog('all',from,text); }
+function playerPrivate(from,to,text){
+  const fromPlayer = state.players.find(p=>p.name===from);
+  addLog('private',from,`对 ${seatName(to)} 私聊：${text}`,{fromId:fromPlayer?.id,toId:to});
+}
+function hostPrivate(to,text){ addLog('hostprivate','主持人',`对 ${seatName(to)} 私聊：${text}`,{toId:to}); }
+
+function announceNearDeath(text){
+  addLog('nearsdeath','主持人',`〔全体通报〕${text}`);
+}
+function announceInspect(text){
+  addLog('inspect','主持人',`〔全体通报〕${text}`);
+}
+function announceDeath(text){
+  addLog('death','主持人',`〔全体通报〕${text}`);
+}
+function announceDamage(text){
+  addLog('damage','主持人',`〔全场通报〕${text}`);
+}
+
+function renderLog(){
+  const log = $('log');
+  const isPlayerMode = state.mode === 'player';
+  const myId = state.userSeat;
+  const filtered = state.chatLogs.filter(m=>{
+    if(state.currentTab==='all'){
+      return [
+        'all','notice','broadcast','system',
+        'nearsdeath','inspect','death','damage'
+      ].includes(m.type);
+    }
+    if(state.currentTab==='private'){
+      if(!isPlayerMode) return m.type==='private';
+      return m.type==='private' && (m.fromId===myId || m.toId===myId);
+    }
+    if(state.currentTab==='host'){
+      if(!isPlayerMode) return m.type==='hostprivate';
+      return m.type==='hostprivate' && m.toId===myId;
+    }
+    return false;
+  });
+  log.innerHTML = filtered.map(m=>{
+    let cls = m.type;
+    if(m.type==='notice'||m.type==='broadcast'||m.type==='system') cls='notice ' + m.type;
+    return `<div class="msg ${cls}"><span class="time">${m.time}</span><span class="from">${m.from}：</span><span class="text">${m.text}</span></div>`;
+  }).join('');
+  log.scrollTop = log.scrollHeight;
+}
+
+function renderPlayers(){
+  const box = $('playerList');
+  const isPlayerMode = state.mode === 'player';
+  const myId = state.userSeat;
+  const user = state.players.find(p=>p.isUser);
+
+  let list = state.players;
+  if(isPlayerMode && user && user.alive){
+    const vis = getVisiblePlayers(user);
+    const mates = getTeammates(user);
+    list = state.players.filter(p=>vis.includes(p) || p===user || mates.includes(p));
+  }
+
+  box.innerHTML = list.map(p=>{
+    const cls = ['player-card'];
+    if(!p.alive) cls.push('dead');
+    if(isPlayerMode && myId===p.id) cls.push('user');
+
+    const isMe = isPlayerMode && myId===p.id;
+    const isMate = isPlayerMode && user && isTeammate(user,p);
+    const mateTag = isMate ? '<span class="teammate-tag">队友</span>' : '';
+    const canSeeSecret = !isPlayerMode || isMe;
+    const role = canSeeSecret ? (p.role || '未分配') : '未知';
+    const camp = canSeeSecret ? (p.camp||'') : '';
+    const tag = camp==='好人'?'good':camp==='狼人'?'wolf':camp==='中立'?'neutral':'';
+    const campTag = camp ? `<span class="tag ${tag}">${camp}</span>` : '';
+
+    let inspectLabel = '未知';
+    if(isMe){
+      inspectLabel = p.role || '未知';
+    }else if(p.trueInspectedRole){
+      inspectLabel = p.trueInspectedRole;
+    }else if(p.inspectedCamp){
+      inspectLabel = p.inspectedCamp;
+    }else if(!isPlayerMode){
+      inspectLabel = p.role || '未知';
+    }
+
+    const hpText = canSeeSecret ? `HP ${p.hp.toFixed(2)} / ${p.maxHp}` : `状态：${p.alive?'存活':'死亡'}`;
+    const actionText = canSeeSecret ? `行动点 ${p.actionsLeft} · 攻击 ${p.phaseAttacksLeft}/${p.roundAttacksLeft}` : '';
+
+    return `<div class="${cls.join(' ')}">
+      <div class="pname">${p.name}${mateTag}<span class="inspect-tag">${inspectLabel}</span>${campTag}</div>
+      <div class="prole">${role}</div>
+      <div class="php">${hpText}</div>
+      <div class="pactions">${actionText}</div>
+    </div>`;
+  }).join('');
+
+  $('aliveText').textContent = alivePlayers().length + ' / ' + state.players.length;
+}
+
+function renderPrivateSelect(){
+  const sel = $('privateSelect');
+  const prev = sel.value;
+  const isPlayerMode = state.mode === 'player';
+  const myId = state.userSeat;
+  sel.innerHTML = '<option value="">选择私聊对象</option>' + state.players.map(p=>{
+    const canSeeRole = !isPlayerMode || myId===p.id;
+    return `<option value="${p.id}">${p.name}${canSeeRole && p.role ? ' · ' + p.role : ''}</option>`;
+  }).join('');
+  sel.value = prev;
+}
+
+function renderHostState(){
+  $('phaseText').textContent = state.phase==='lobby'?'未开始':phaseLabel();
+  $('dayText').textContent = state.day||'-';
+  $('turnText').textContent = state.phase==='lobby'?'-':(state.turn+'/'+currentPhaseDef().turns);
+  const isPlayerMode = state.mode === 'player';
+  if(isPlayerMode){
+    $('hostState').innerHTML = state.players.length ? `
+      <div class="stat-line"><span>场上人数</span><span>${state.players.length}</span></div>
+      <div class="stat-line"><span>存活人数</span><span>${alivePlayers().length}</span></div>
+    ` : '<div class="stat-line"><span>未开局</span></div>';
+  }else{
+    $('hostState').innerHTML = state.players.length ? `
+      <div class="stat-line"><span>存活</span><span>${alivePlayers().length}/${state.players.length}</span></div>
+      <div class="stat-line"><span>好人</span><span>${goodAlive()}</span></div>
+      <div class="stat-line"><span>狼人</span><span>${wolfAlive()}</span></div>
+      <div class="stat-line"><span>中立</span><span>${alivePlayers().filter(p=>p.camp==='中立').length}</span></div>
+      <div class="stat-line"><span>危险中立</span><span>${dangerousAlive()}</span></div>
+    ` : '<div class="stat-line"><span>未开局</span></div>';
+  }
+}
+
+function renderMyRole(){
+  const p = state.players.find(x=>x.isUser);
+  if(!p){ $('myRolePanel').textContent = '当前为观战/主持人模式'; return; }
+  $('myRolePanel').innerHTML = `
+    <div class="stat-line"><span>座位</span><span>${p.name}</span></div>
+    <div class="stat-line"><span>职业</span><span>${p.role}</span></div>
+    <div class="stat-line"><span>阵营</span><span>${p.camp} / ${p.attr}</span></div>
+    <div class="stat-line"><span>血量</span><span>${p.hp.toFixed(2)} / ${p.maxHp}</span></div>
+    <div class="stat-line"><span>移速</span><span>${getSpeed(p)}</span></div>
+    <div class="stat-line"><span>行动点</span><span>${p.actionsLeft}</span></div>
+  `;
+}
+
+function openTargetModal(skillName){
+  const user = state.players.find(p=>p.isUser);
+  if(!user) return;
+
+  let candidates;
+  if(DISTANCE_IGNORE_SKILLS.includes(skillName)){
+    candidates = alivePlayers().filter(o=>o!==user);
+  }else{
+    candidates = getVisiblePlayers(user).filter(o=>o!==user && o.alive);
+  }
+
+  state.pendingSkill = skillName;
+  const box = $('targetList');
+  const isPlayerMode = state.mode === 'player';
+
+  box.innerHTML = candidates.map(p=>{
+    const label = isPlayerMode ? `${p.name}（${p.alive?'存活':'死亡'}）` : `${p.name} ${p.role}`;
+    return `<button class="targetPickBtn" data-id="${p.id}">${label}</button>`;
+  }).join('');
+
+  if(!candidates.length){
+    box.innerHTML = '<div class="stat-line"><span>没有可选目标</span></div>';
+  }
+
+  $('targetModal').classList.remove('hidden');
+
+  document.querySelectorAll('.targetPickBtn').forEach(btn=>{
+    btn.onclick = ()=>{
+      const chosenSkill = state.pendingSkill;
+      const target = getPlayer(btn.dataset.id);
+      closeTargetModal();
+      if(target && chosenSkill){
+        user.skillUsedThisTurn = true;
+        user.usedSkillChoice = chosenSkill;
+        renderActionPanel();
+        performSkill(user, chosenSkill, target, {}).then(ok=>{
+          if(ok){
+            user.actionConsumed = true;
+            endCurrentAction(user);
+          }else{
+            user.skillUsedThisTurn = false;
+            user.usedSkillChoice = null;
+            renderActionPanel();
+          }
+        });
+      }
+    };
+  });
+}
+
+function closeTargetModal(){
+  $('targetModal').classList.add('hidden');
+  state.pendingSkill = null;
+}
+
+function renderActionPanel(){
+  const box = $('actionPanel');
+  if(!box) return;
+  const user = state.players.find(p=>p.isUser);
+  if(!user || state.mode !== 'player' || !state.started || state.ended){
+    box.innerHTML = '<div class="stat-line"><span>当前不是玩家模式</span></div>';
+    return;
+  }
+  if(!user.alive){
+    box.innerHTML = '<div class="stat-line"><span>你已死亡，进入观战</span></div>';
+    return;
+  }
+  if(!state.userTurnActive){
+    box.innerHTML = `<div class="stat-line"><span>等待你的回合...</span></div>`;
+    return;
+  }
+
+  const attackTargets = getAttackableTargets(user);
+  const atkOpts = attackTargets.map(o=>`<option value="${o.id}">${o.name}</option>`).join('');
+
+  const sp = getSpeed(user);
+  const cur = posOf(user);
+  const maxD = sp===1?0:sp===2?1:sp===3?1:2;
+  let moveOpts = '';
+  for(let d=-maxD; d<=maxD; d++){
+    if(d===0) continue;
+    const ni = cur+d;
+    if(ni>=0 && ni<state.players.length) moveOpts += `<option value="${ni}">${seatName(ni+1)}</option>`;
+  }
+
+  const skills = getSkillChoices(user);
+  const skillButtons = [];
+  for(let i=0;i<3;i++){
+    const s = skills[i] || '';
+    let label = '空';
+    let disabled = true;
+
+    if(s && !user.skillUsedThisTurn){
+      const usable = canUseSkill(user, s);
+      label = usable ? s : s + '（冷却）';
+      disabled = !usable;
+    }else if(s && user.skillUsedThisTurn && user.usedSkillChoice === s){
+      label = s + ' ✓';
+      disabled = true;
+    }else if(s && user.skillUsedThisTurn && user.usedSkillChoice !== s){
+      label = '';
+      disabled = true;
+    }
+
+    skillButtons.push({label, disabled});
+  }
+
+  box.innerHTML = `
+    <div class="stat-line"><span>行动次数</span><span>${user.actionsLeft}</span></div>
+    <div class="stat-line"><span>本次行动攻击次数</span><span>${user.roundAttacksLeft}</span></div>
+    <div class="stat-line"><span>倒计时</span><span id="userTimerText">${state.userTurnSeconds}</span></div>
+    <div class="stat-line"><span>移速</span><span>${sp}</span></div>
+    <div class="stat-line"><span>攻击范围</span><span>${user.ranged?'远程':'近战'}</span></div>
+    <div style="margin:8px 0"><label>攻击目标</label>
+      <select id="atkTarget">${atkOpts || '<option value="">无目标</option>'}</select>
+      <button id="actAttack">攻击</button>
+    </div>
+    <div style="margin:8px 0"><label>移动位置</label>
+      <select id="moveTarget">${moveOpts || '<option value="">不可移动</option>'}</select>
+      <button id="actMove">移动</button>
+    </div>
+    <div style="margin:8px 0"><label>技能</label></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      ${skillButtons.map((b,i)=>`<button id="skillBtn${i}" ${b.disabled?'disabled':''}>${b.label||'空'}</button>`).join('')}
+    </div>
+    <div style="margin-top:10px">
+      <button id="actEndTurn" class="primary">结束本次行动</button>
+    </div>
+  `;
+
+  const atkSel = $('atkTarget');
+  const moveSel = $('moveTarget');
+
+  $('actAttack').onclick = async ()=>{
+    if(!state.userTurnActive) return;
+    const target = getPlayer(atkSel?.value);
+    if(!target){ system('请选择攻击目标'); return; }
+
+    const res = await performAttack(user,target);
+
+    if(res.success){
+      if(user.actionsLeft <= 0){
+        endUserTurn();
+      }else{
+        renderAll();
+      }
+    }
+  };
+
+  $('actMove').onclick = ()=>{
+    if(!state.userTurnActive) return;
+    const ni = parseInt(moveSel?.value);
+    if(isNaN(ni)){ system('请选择移动位置'); return; }
+
+    const ok = movePlayer(user,ni);
+    if(ok){
+      user.actionConsumed = true;
+      endCurrentAction(user);
+    }
+  };
+
+  for(let i=0;i<3;i++){
+    const btn = $('skillBtn'+i);
+    if(btn && !btn.disabled){
+      const choice = skills[i];
+      btn.onclick = ()=>{
+        if(!state.userTurnActive) return;
+        if(user.skillUsedThisTurn) return;
+
+        user.skillUsedThisTurn = true;
+        user.usedSkillChoice = choice;
+        renderActionPanel();
+
+        if(NO_TARGET_SKILLS.includes(choice)){
+          performSkill(user, choice, null, {}).then(ok=>{
+            if(ok){
+              user.actionConsumed = true;
+              endCurrentAction(user);
+            }else{
+              user.skillUsedThisTurn = false;
+              user.usedSkillChoice = null;
+              renderActionPanel();
+            }
+          });
+        }else{
+          openTargetModal(choice);
+        }
+      };
+    }
+  }
+
+  $('actEndTurn').onclick = ()=>endCurrentAction(user);
+}
+
+function renderAll(){
+  renderPlayers();
+  renderHostState();
+  renderMyRole();
+  renderActionPanel();
+  renderPrivateSelect();
+  renderLog();
+}
+
+/* ===================== 游戏设置 / 角色分配 ===================== */
+function openSetup(){ $('setupModal').classList.remove('hidden'); updateSeatOptions(); applyProvider(); }
+function closeSetup(){ $('setupModal').classList.add('hidden'); }
+function updateSeatOptions(){
+  const n = parseInt($('setPlayerCount').value);
+  const mode = $('setMode').value;
+  const seatRow = $('seatRow');
+  if(mode==='player'){
+    seatRow.classList.remove('hidden');
+    const sel = $('setSeat');
+    sel.innerHTML = '';
+    for(let i=1;i<=n;i++){
+      const o=document.createElement('option');
+      o.value=i;
+      o.textContent=seatName(i);
+      sel.appendChild(o);
+    }
+  }else{
+    seatRow.classList.add('hidden');
+  }
+}
+
+function selectRoles(n){
+  const result = [];
+  function pick(pool){
+    const available = pool.filter(r=>!result.includes(r));
+    const chosen = rand(available);
+    result.push(chosen);
+  }
+  const need = {
+    7:{armed:2,scout:1,holy:1,wolfMain:1,wolfFunc:1,neutral:1},
+    8:{armed:2,scout:1,holy:2,wolfMain:1,wolfFunc:1,neutral:1},
+    9:{armed:2,scout:1,holy:2,wolfMain:2,wolfFunc:1,neutral:1},
+    10:{armed:2,scout:1,holy:2,wolfMain:2,wolfFunc:1,neutral:2}
+  }[n];
+  for(let i=0;i<need.armed;i++) pick(ROLE_POOL.armed);
+  for(let i=0;i<need.scout;i++) pick(ROLE_POOL.scout);
+  for(let i=0;i<need.holy;i++) pick(ROLE_POOL.holy);
+  for(let i=0;i<need.wolfMain;i++) pick(ROLE_POOL.wolfMain);
+  for(let i=0;i<need.wolfFunc;i++) pick(ROLE_POOL.wolfFunc);
+  for(let i=0;i<need.neutral;i++) pick(ROLE_POOL.neutral);
+  for(let i=result.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [result[i],result[j]]=[result[j],result[i]];
+  }
+  return result;
+}
+
+function buildPlayer(id){
+  const memory = state.aiMemory[id] || { previousGames: [] };
+  state.aiMemory[id] = memory;
+
+  return {
+    id,
+    name:seatName(id),
+    role:null,
+    roleData:null,
+    camp:null,
+    attr:null,
+    hp:1,
+    maxHp:1,
+    atk:0,
+    atkDay:0,
+    atkNight:0,
+    roundLimit:1,
+    ranged:false,
+    alive:true,
+    corpse:true,
+    corpsePos:null,
+    isUser:false,
+    actionsLeft:2,
+    phaseAttacksLeft:0,
+    roundAttacksLeft:0,
+    shield:0,
+    inspectedCamp:null,
+    trueInspectedRole:null,
+    guessedCorrect:0,
+    preyCount:0,
+    preyKills:0,
+    hasBomb:false,
+    stealth:false,
+    deadTurn:false,
+    skillUsedThisTurn:false,
+    usedSkillChoice:null,
+    skillUseRecords: [],
+    actionConsumed:false,
+    memory
+  };
+}
+
+function startGame(){
+  const n = parseInt($('setPlayerCount').value);
+  const mode = $('setMode').value;
+  const userSeat = mode==='player'?parseInt($('setSeat').value):null;
+
+  state.started = true;
+  state.ended = false;
+  state.mode = mode;
+  state.userSeat = userSeat;
+  state.players = [];
+  state.day = 0;
+  state.turn = 0;
+  state.phase = 'lobby';
+  state.phaseIndex = 0;
+  state.auto = false;
+  state.chatLogs = [];
+  state.scores = {};
+  state.commonNeutrals = [];
+  state.soloNeutral = null;
+  state.winner = null;
+  state.currentTurnPlayerId = null;
+  state.userTurnActive = false;
+  state.turnQueue = [];
+  state.turnQueueIndex = 0;
+  state.paused = false;
+  clearUserTimer();
+  stopFreeChatLoop();
+
+  const roles = selectRoles(n);
+  for(let i=1;i<=n;i++){
+    const p = buildPlayer(i);
+    if(userSeat===i) p.isUser = true;
+    state.players.push(p);
+  }
+  state.players.forEach((p,idx)=>{
+    const rd = roles[idx];
+    p.role = rd.name;
+    p.roleData = rd;
+    p.camp = rd.camp;
+    p.attr = rd.attr;
+    p.maxHp = rd.hp;
+    p.hp = rd.hp;
+    p.atk = rd.atk;
+    p.atkDay = rd.atkDay||0;
+    p.atkNight = rd.atkNight||0;
+    p.roundLimit = rd.roundLimit||1;
+    p.ranged = !!rd.ranged;
+    p.score = 20;
+    state.scores[p.id] = 20;
+  });
+
+  closeSetup();
+  if(state.mode === 'player'){
+    $('btnNextTurn').textContent = '暂停';
+    $('btnAuto').disabled = true;
+  }else{
+    $('btnNextTurn').textContent = '下一回合';
+    $('btnAuto').disabled = false;
+  }
+  renderAll();
+  hostAll(`游戏开始，共 ${n} 名玩家。职业已秘密分配。`);
+  if(state.mode === 'host'){
+    hostAll(`本局职业分配：${state.players.map(p=>`${p.name}=${p.role}`).join('、')}（此信息仅主持人可见）`);
+  }else{
+    system('你的职业已秘密分配，请查看右侧“我的角色”。');
+  }
+  system('主持人脚本已接管。每回合有 2 次行动，轮到你时右侧会出现行动按钮。');
+
+  stopFreeChatLoop();
+  startFreeChatLoop();
+
+  state.day = 1;
+  state.phaseIndex = 0;
+  startPhase();
+}
+
+function startPhase(){
+  const def = PHASE_SEQ[state.phaseIndex];
+  state.phase = def.key;
+  state.turn = 1;
+  if(def.key==='dawn') hostAll('黎明到来，好人迎来了他们的曙光');
+  if(def.key==='day') hostAll('白天到来，好人请开始谨慎行动');
+  if(def.key==='dusk') hostAll('黄昏到来，一些玩家开始蠢蠢欲动');
+  if(def.key==='night') hostAll('夜晚到来，这是属于狼人的狂欢');
+
+  state.players.forEach(p=>{
+    p.phaseAttacksLeft = getPhaseAttackLimit(p);
+    p.skillUsedThisTurn = false;
+    p.usedSkillChoice = null;
+    p.actionConsumed = false;
+  });
+
+  if(def.key==='dawn'||def.key==='dusk'){
+    state.players.filter(p=>p.hasBomb).forEach(p=>{
+      const dmg = 6;
+      applyDamage(p,dmg,null);
+      p.hasBomb=false;
+    });
+  }
+
+  startTurn();
+}
+
+function startTurn(){
+  const def = currentPhaseDef();
+  if(!def) return;
+  state.players.forEach(p=>{
+    p.actionsLeft = 2;
+    p.roundAttacksLeft = p.roundLimit>=99?99:(p.roundLimit||1);
+    p.skillUsedThisTurn = false;
+    p.usedSkillChoice = null;
+    p.actionConsumed = false;
+  });
+
+  runPassives();
+
+  renderAll();
+  system(`第 ${state.day} 天 · ${phaseLabel()} · 第 ${state.turn}/${def.turns} 回合开始。每名玩家有 2 次行动。`);
+  if(state.mode === 'player'){
+    startPlayerTurnQueue();
+  }else{
+    runAiPlayers();
+  }
+}
+
+function startPlayerTurnQueue(){
+  state.turnQueue = alivePlayers().slice().sort((a,b)=>posOf(a)-posOf(b));
+  state.turnQueueIndex = 0;
+  state.paused = false;
+  $('btnNextTurn').textContent = '暂停';
+  processNextPlayerTurn();
+}
+
+async function processNextPlayerTurn(){
+  if(!state.started || state.ended) return;
+  if(state.paused) return;
+  if(state.turnQueueIndex >= state.turnQueue.length){
+    advanceTurn();
+    return;
+  }
+  const p = state.turnQueue[state.turnQueueIndex];
+  state.currentTurnPlayerId = p.id;
+  if(p.isUser && p.alive){
+    beginUserTurn(p);
+  }else{
+    await aiAct(p);
+    state.turnQueueIndex++;
+    processNextPlayerTurn();
+  }
+}
+
+function beginUserTurn(p){
+  state.userTurnActive = true;
+  state.currentTurnPlayerId = p.id;
+  renderAll();
+  system(`轮到 ${p.name} 行动，你有 60 秒时间。`);
+  startUserTimer();
+}
+
+function startUserTimer(){
+  clearUserTimer();
+  state.userTurnSeconds = 60;
+  const el = $('userTimerText');
+  if(el) el.textContent = '60';
+  state.userTurnInterval = setInterval(()=>{
+    state.userTurnSeconds--;
+    const e = $('userTimerText');
+    if(e) e.textContent = String(state.userTurnSeconds);
+    if(state.userTurnSeconds <= 0){
+      system('行动超时，自动结束你的回合。');
+      endUserTurn();
+    }
+  },1000);
+}
+
+function clearUserTimer(){
+  if(state.userTurnInterval) clearInterval(state.userTurnInterval);
+  state.userTurnInterval = null;
+}
+
+function endCurrentAction(user){
+  if(!state.userTurnActive || !user) return;
+
+  if(!user.actionConsumed){
+    user.actionsLeft = Math.max(0, user.actionsLeft - 1);
+    user.actionConsumed = true;
+  }
+
+  if(user.actionsLeft > 0){
+    user.roundAttacksLeft = user.roundLimit >= 99 ? 99 : (user.roundLimit || 1);
+    user.actionConsumed = false;
+    user.skillUsedThisTurn = false;
+    user.usedSkillChoice = null;
+    renderAll();
+    system('你还有一次行动。');
+  }else{
+    endUserTurn();
+  }
+}
+
+function endUserTurn(){
+  if(!state.userTurnActive) return;
+  clearUserTimer();
+  closeTargetModal();
+  state.userTurnActive = false;
+  state.currentTurnPlayerId = null;
+  state.turnQueueIndex++;
+  renderAll();
+  if(state.ended) return;
+  processNextPlayerTurn();
+}
+
+function advanceTurn(){
+  const def = currentPhaseDef();
+  if(!def) return;
+  if(state.turn < def.turns){
+    state.turn++;
+    startTurn();
+  }else if(state.phaseIndex < PHASE_SEQ.length-1){
+    state.phaseIndex++;
+    startPhase();
+  }else if(state.day < DAYS){
+    state.day++;
+    state.phaseIndex = 0;
+    startPhase();
+  }else{
+    endGame();
+  }
+}
+
+function nextTurn(){
+  if(state.mode === 'player') return;
+  if(!state.started || state.ended) return;
+  advanceTurn();
+}
+
+function togglePause(){
+  if(state.mode !== 'player') return;
+  if(!state.started || state.ended) return;
+  state.paused = !state.paused;
+  $('btnNextTurn').textContent = state.paused ? '继续' : '暂停';
+  if(state.paused){
+    clearUserTimer();
+    system('已暂停。');
+  }else{
+    system('已继续。');
+    if(state.userTurnActive){
+      startUserTimer();
+    }else{
+      processNextPlayerTurn();
+    }
+  }
+}
+
+function autoNext(){
+  if(state.mode === 'player'){
+    system('玩家模式由回合流程自动推进，无需自动进行。');
+    return;
+  }
+  if(state.auto) return;
+  state.auto = true;
+  $('btnAuto').textContent = '自动进行中...';
+  state.autoTimer = setInterval(()=>{
+    if(state.ended){ stopAuto(); return; }
+    nextTurn();
+  },12000);
+}
+function stopAuto(){
+  state.auto = false;
+  if(state.autoTimer) clearInterval(state.autoTimer);
+  state.autoTimer = null;
+  $('btnAuto').textContent = '自动进行';
+}
+
+/* ===================== AI 控制 ===================== */
+async function callAI(systemPrompt,userPrompt){
+  const {endpoint,key,model} = state.api;
+  if(!endpoint||!key||!model) return null;
+  try{
+    const res = await fetch(endpoint,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+      body:JSON.stringify({
+        model,
+        messages:[
+          {role:'system',content:systemPrompt},
+          {role:'user',content:userPrompt}
+        ],
+        temperature:0.8,
+        max_tokens:300
+      })
+    });
+    if(!res.ok) return null;
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content || null;
+  }catch(e){ return null; }
+}
+
+function parseAction(raw){
+  if(!raw) return null;
+  try{
+    const start = raw.indexOf('{');
+    const end = raw.lastIndexOf('}');
+    if(start>=0&&end>start) return JSON.parse(raw.slice(start,end+1));
+  }catch(e){}
+  return null;
+}
+
+function fallbackAction(p){
+  const actions = [];
+  const ph = state.phase;
+  if(ph==='night' && p.camp==='狼人' && p.phaseAttacksLeft>0 && p.roundAttacksLeft>0){
+    const targets = getAttackableTargets(p).filter(o=>o.camp!=='狼人');
+    if(targets.length) actions.push({type:'attack',target:rand(targets).id});
+  }
+  if(ph==='day' && p.camp==='好人' && Math.random()<0.25){
+    const targets = getAttackableTargets(p).filter(o=>o.inspectedCamp==='狼人');
+    if(targets.length) actions.push({type:'attack',target:rand(targets).id});
+  }
+  if(actions.length===0){
+    const lines = ['……','大家注意安全。','我暂时没有发现异常。','（观察四周）','先别急，再看看。','有人能出来带一下吗？'];
+    if(p.camp==='狼人') actions.push({chat:'（保持沉默）'});
+    else if(p.camp==='中立') actions.push({chat:'我只是路过。'});
+    else actions.push({chat:rand(lines)});
+  }
+  return {chat: actions.find(a=>a.chat)?.chat||'', private:[], action: actions.find(a=>a.type)||{type:'none'}};
+}
+
+function buildAIPrompt(p){
+  const vis = getVisiblePlayers(p);
+
+  const visStr = vis.map(o=>{
+    const isSelf = o === p;
+    let knownCamp = '未知';
+    let knownRole = '未知';
+
+    if(isSelf){
+      knownCamp = p.camp;
+      knownRole = p.role;
+    }else{
+      if(isTeammate(p,o)){
+        knownCamp = '队友';
+      }else if(o.inspectedCamp){
+        knownCamp = o.inspectedCamp;
+      }
+
+      if(o.trueInspectedRole){
+        knownRole = o.trueInspectedRole;
+      }
+    }
+
+    return `${o.name}${isSelf?'(你)':''}[阵营：${knownCamp}，职业：${knownRole}，HP：${o.hp.toFixed(1)}]`;
+  }).join('、');
+
+  const aiVisibleTypes = [
+    'all','notice','broadcast','system',
+    'nearsdeath','inspect','death','damage'
+  ];
+
+  const publicLogs = state.chatLogs
+    .filter(m=>aiVisibleTypes.includes(m.type) && !m.text.startsWith('/'))
+    .slice(-20)
+    .map(l=>`${l.time} ${l.from}：${l.text}`)
+    .join('\n');
+
+  const memoryText = p.memory?.previousGames?.length
+    ? p.memory.previousGames.map((g,i)=>
+        `第${i+1}局：职业${g.role}，阵营${g.camp}，${g.alive?'存活':'死亡'}，结果${g.winner}`
+      ).join('；')
+    : '无';
+
+  const sp = getSpeed(p);
+  const cur = posOf(p);
+  const maxD = sp===1?0:sp===2?1:sp===3?1:2;
+  const movePositions = [];
+  for(let d=-maxD; d<=maxD; d++){
+    if(d===0) continue;
+    const ni = cur+d;
+    if(ni>=0 && ni<state.players.length){
+      movePositions.push(seatName(ni+1));
+    }
+  }
+
+  const teammateText = p.camp==='狼人'
+    ? getTeammates(p).map(o=>o.name).join('、') || '无'
+    : '无';
+
+  const mySkills = getSkillChoices(p).map(s=>{
+    const usable = canUseSkill(p, s);
+    return `${s}${usable ? '（可用）' : '（冷却/不可用）'}`;
+  }).join('、') || '无';
+
+  return `你正在玩多职业狼人杀。你是 ${p.name}，职业：${p.role}，阵营：${p.camp}（${p.attr}），血量 ${p.hp.toFixed(1)}/${p.maxHp}，移速 ${sp}，位置 ${posOf(p)+1}。
+当前：第${state.day}天 ${phaseLabel()} 第${state.turn}回合。你的行动点 ${p.actionsLeft}，本次行动可攻击 ${p.roundAttacksLeft} 次，本阶段可攻击 ${p.phaseAttacksLeft} 次。
+你的跨局记忆：${memoryText}
+你的狼人队友：${teammateText}
+你可以移动到的位置：${movePositions.length ? movePositions.join('、') : '无'}
+你的技能：${mySkills}
+如果你要使用技能，action.type 用 skill，skill 填技能名，target 填目标数字。
+
+【内部阵营原则】
+${AI_INTERNAL_GUIDE}
+
+你能观察到的玩家：${visStr}
+近期公开信息：
+${publicLogs || '（暂无）'}
+
+请以JSON输出，格式：
+{"chat":"你的公开发言，可空字符串","private":[{"to":2,"text":"私聊内容"}],"action":{"type":"attack|skill|move|none","target":2,"skill":"技能名"}}
+注意：目标用数字座位号。攻击只可对范围内目标；技能仅可对符合条件目标。不要暴露职业除非你有意。`;
+}
+
+async function aiAct(p){
+  if(!p.alive||state.ended) return;
+  const sys = '你是狼人杀玩家。必须严格输出JSON，不要输出多余内容。';
+  const raw = await callAI(sys, buildAIPrompt(p));
+  let act = parseAction(raw);
+  if(!act) act = fallbackAction(p);
+  await executePlayerAction(p, act);
+}
+
+async function runAiPlayers(){
+  const aiPlayers = state.players.filter(p=>p.alive && !p.isUser);
+  for(const p of aiPlayers){
+    if(state.ended) return;
+    await aiAct(p);
+    await sleep(400);
+  }
+  renderAll();
+}
+
+/* ===================== 自由聊天 ===================== */
+function buildFreeChatPrompt(p){
+  const aiVisibleTypes = [
+    'all','notice','broadcast','system',
+    'nearsdeath','inspect','death','damage'
+  ];
+
+  const publicLogs = state.chatLogs
+    .filter(m=>aiVisibleTypes.includes(m.type) && !m.text.startsWith('/'))
+    .slice(-20)
+    .map(l=>`${l.time} ${l.from}：${l.text}`)
+    .join('\n');
+
+  const memoryText = p.memory?.previousGames?.length
+    ? p.memory.previousGames.map((g,i)=>
+        `第${i+1}局：${g.role}，${g.camp}，${g.alive?'存活':'死亡'}，结果${g.winner}`
+      ).join('；')
+    : '无';
+
+  return `你正在多职业狼人杀聊天群里。你是 ${p.name}，职业：${p.role}，阵营：${p.camp}。
+你的跨局记忆：${memoryText}
+
+【内部阵营原则】
+${AI_INTERNAL_GUIDE}
+
+当前是自由聊天时间，不需要行动，不要输出JSON。
+请像真实玩家一样用自然中文在群里说一句话，可以回应最近的聊天，但不要暴露自己的职业，不要说自己是AI，不要超过80字。
+近期公开信息：
+${publicLogs || '（暂无）'}`;
+}
+
+async function aiFreeChat(p){
+  if(!p || !p.alive || state.ended) return;
+
+  const sys = '你是狼人杀玩家，正在群聊。只输出一句自然的中文发言，不要输出JSON，不要解释。';
+  const raw = await callAI(sys, buildFreeChatPrompt(p));
+  let text = raw ? String(raw).trim() : '';
+
+  if(text.startsWith('{')){
+    const obj = parseAction(text);
+    if(obj && obj.chat) text = obj.chat;
+  }
+
+  if(!text){
+    const fallbackLines = [
+      '……',
+      '我先观望一下。',
+      '大家有什么想法？',
+      '别急着下结论。',
+      '我感觉场上还有信息没出来。',
+      '有人愿意说说自己的看法吗？'
+    ];
+    text = rand(fallbackLines);
+  }
+
+  text = text.replace(/\s+/g,' ').slice(0,200);
+  playerSay(p.name, text);
+}
+
+function triggerFreeChatReply(count=1){
+  if(state.ended || !state.started) return;
+  const aiPlayers = state.players.filter(p=>p.alive && !p.isUser);
+  if(!aiPlayers.length) return;
+
+  const shuffled = aiPlayers.slice().sort(()=>Math.random()-0.5);
+  for(let i=0;i<count && i<shuffled.length;i++){
+    const p = shuffled[i];
+    setTimeout(()=>aiFreeChat(p), 900 + i*1200);
+  }
+}
+
+function startFreeChatLoop(){
+  stopFreeChatLoop();
+  state.freeChatTimer = setInterval(async ()=>{
+    if(state.ended || !state.started) return;
+    if(state.freeChatBusy) return;
+    state.freeChatBusy = true;
+
+    try{
+      const aiPlayers = state.players.filter(p=>p.alive && !p.isUser);
+      if(aiPlayers.length){
+        const p = rand(aiPlayers);
+        await aiFreeChat(p);
+      }
+    }finally{
+      state.freeChatBusy = false;
+    }
+  }, 12000);
+}
+
+function stopFreeChatLoop(){
+  if(state.freeChatTimer) clearInterval(state.freeChatTimer);
+  state.freeChatTimer = null;
+  state.freeChatBusy = false;
+}
+
+/* ===================== 动作处理 ===================== */
+async function executePlayerAction(p, act){
+  act = act || {chat:'',private:[],action:{type:'none'}};
+  if(act.chat && String(act.chat).trim()) playerSay(p.name, String(act.chat).trim());
+  if(Array.isArray(act.private)){
+    for(const pr of act.private){
+      const target = getPlayer(pr.to);
+      if(target) playerPrivate(p, target.id, String(pr.text||''));
+    }
+  }
+  if(act.action) await handleAction(p, act.action);
+  renderAll();
+}
+
+async function handleAction(p, act){
+  if(!p.alive||state.ended) return false;
+  const type = act.type;
+
+  if(type==='attack'){
+    const target = getPlayer(act.target);
+    if(!target) return {success:false};
+    return await performAttack(p,target);
+  }
+
+  if(type==='skill'){
+    const target = getPlayer(act.target);
+    return await performSkill(p, act.skill||'', target, act);
+  }
+
+  if(type==='move'){
+    const pos = parseInt(act.targetPos||act.target);
+    if(isNaN(pos)) return false;
+    return movePlayer(p,pos-1);
+  }
+
+  if(type==='inspect'){
+    const target = getPlayer(act.target);
+    if(!target) return false;
+    inspectPlayer(p,target,false);
+    p.actionsLeft = Math.max(0,p.actionsLeft-1);
+    return true;
+  }
+
+  if(type==='none'){
+    return false;
+  }
+
+  return false;
+}
+
+function applyDamage(target, amount, source){
+  if(!target.alive) return;
+
+  if(source && hasTeamProtection(source,target)){
+    return;
+  }
+
+  let dmg = amount;
+  if(target.shield>0){
+    const absorb = Math.min(target.shield,dmg);
+    target.shield -= absorb;
+    dmg -= absorb;
+  }
+
+  target.hp = Math.max(0,target.hp-dmg);
+
+  if(target.hp <= 0){
+    killPlayer(target,source,false);
+    return;
+  }
+
+  announceDamage(`一名玩家受到了 ${amount} 点伤害`);
+}
+
+function killPlayer(target, source, isCode){
+  if(!target.alive) return;
+
+  const ph = state.phase;
+
+  if(target.role==='小丑' && ph==='day' && !isCode){
+    target.alive = false;
+    target.deadTurn = true;
+    target.corpse = true;
+    target.corpsePos = posOf(target);
+    announceDeath(`${target.name} 死亡。`);
+    endGame();
+    return;
+  }
+
+  if(target.role==='厉鬼' && !isCode){
+    target.role = '厉鬼（濒死）';
+    target.hp = 4;
+    target.maxHp = 4;
+    target.atk = 2;
+    target.atkDay = 0;
+    target.atkNight = 0;
+    target.roundLimit = 99;
+    announceNearDeath(`${target.name} 进入濒死形态（厉鬼（濒死））`);
+    return;
+  }
+
+  if(target.role==='木乃伊' && !isCode){
+    target.role = '尸壳（濒死）';
+    target.camp = '中立';
+    target.attr = '和平';
+    target.hp = 9;
+    target.maxHp = 9;
+    target.atk = 6;
+    target.atkDay = 1;
+    target.atkNight = 0;
+    target.roundLimit = 99;
+    announceDeath(`${target.name} 死亡后变为尸壳`);
+    return;
+  }
+
+  if(!isCode && source){
+    if(source.role==='种狼' || source.role==='僵尸'){
+      target.alive = true;
+      target.role = source.role==='种狼'?'小狼':'僵尸';
+      target.camp = source.role==='种狼'?'狼人':'中立';
+      target.attr = source.role==='种狼'?'主攻':'危险';
+      target.hp = 4;
+      target.maxHp = 4;
+      target.atk = source.role==='种狼'?4:6;
+      target.atkDay = 0;
+      target.atkNight = source.role==='种狼'?1:0;
+      target.roundLimit = 1;
+      target.corpse = false;
+      target.corpsePos = null;
+      return;
+    }
+
+    if(source.role==='孢子'){
+      target.alive = true;
+      target.role = '孢子';
+      target.camp = '狼人';
+      target.attr = '功能';
+      target.hp = 2;
+      target.maxHp = 2;
+      target.atk = 2;
+      target.atkDay = 1;
+      target.atkNight = 2;
+      target.roundLimit = 1;
+      target.corpse = false;
+      target.corpsePos = null;
+      return;
+    }
+  }
+
+  target.alive = false;
+  target.corpse = true;
+  target.corpsePos = posOf(target);
+
+  if(isCode){
+    announceDeath(`${target.name} 被代码击杀。`);
+  }else{
+    announceDeath(`${target.name} 死亡。`);
+  }
+
+  checkEndAfterDeath();
+}
+
+function checkEndAfterDeath(){
+  if(goodAlive()===0 && wolfAlive()===0 && dangerousAlive()===0) endGame();
+}
+
+async function performAttack(p,target){
+  if(!p.alive||!target||!target.alive) return {success:false};
+
+  if(hasTeamProtection(p,target)){
+    playerSay(p.name,'（不能攻击队友）');
+    return {success:false};
+  }
+
+  if(p.phaseAttacksLeft<=0){
+    playerSay(p.name,'（没有攻击次数了）');
+    return {success:false};
+  }
+
+  if(p.roundAttacksLeft<=0){
+    playerSay(p.name,'（本次行动攻击次数已用完）');
+    return {success:false};
+  }
+
+  const rangeType = p.ranged?'ranged':'melee';
+  if(!isInRange(p,target,rangeType)){
+    playerSay(p.name,`（目标不在攻击范围内）`);
+    return {success:false};
+  }
+
+  p.phaseAttacksLeft--;
+  p.roundAttacksLeft--;
+
+  applyDamage(target,p.atk,p);
+
+  if(p.role==='法医' && target.alive && target.camp===p.camp && !target.inspectedCamp){
+    target.hp = Math.min(target.maxHp,target.hp+2);
+    broadcast(`${p.name} 发现同阵营，为 ${target.name} 恢复 2 点血量`);
+  }
+
+  let actionConsumed = false;
+
+  if(p.roundAttacksLeft <= 0){
+    p.actionsLeft = Math.max(0, p.actionsLeft - 1);
+    p.actionConsumed = true;
+    actionConsumed = true;
+
+    if(p.actionsLeft > 0){
+      p.roundAttacksLeft = p.roundLimit >= 99 ? 99 : (p.roundLimit || 1);
+      p.actionConsumed = false;
+    }
+  }
+
+  renderAll();
+  return {success:true, actionConsumed};
+}
+
+function inspectPlayer(p,target,isTrue=false){
+  if(!p||!target||!target.alive) return;
+  let shownCamp = target.camp;
+  let shownRole = target.role;
+  if(target.role==='隐狼' && !isTrue) shownCamp = '好人';
+  if(target.role==='双料特工' && !isTrue) shownCamp = '狼人';
+  if(!isTrue && state.players.some(o=>o.alive&&o.role==='诡狼')){
+    shownCamp = shownCamp==='好人'?'狼人':shownCamp==='狼人'?'中立':'好人';
+  }
+  if(isTrue){
+    target.trueInspectedRole = shownRole;
+    announceInspect(`真实查验结果：${target.name} 的职业为 ${shownRole}，阵营为 ${target.camp}`);
+  }else{
+    target.inspectedCamp = shownCamp;
+    announceInspect(`查验结果：${target.name} 的阵营为 ${shownCamp}`);
+  }
+  if(isTrue && target.role==='双料特工'){
+    target.role = '双料特工（暴露）';
+    broadcast(`${target.name} 进入暴露状态`);
+  }
+}
+
+function movePlayer(p,newIndex){
+  if(!p.alive) return false;
+
+  const maxMove = getSpeed(p);
+  const oldIndex = posOf(p);
+  const dist = Math.abs(newIndex-oldIndex);
+  const allowed = maxMove===1?0:maxMove===2?1:maxMove===3?1:2;
+
+  if(dist>allowed){
+    playerSay(p.name,`（移速不足，当前移速 ${maxMove}）`);
+    return false;
+  }
+
+  const clamped = clamp(newIndex,0,state.players.length-1);
+  const other = state.players[clamped];
+
+  if(other && other!==p && other.alive){
+    state.players[oldIndex] = other;
+    state.players[clamped] = p;
+    broadcast(`${p.name} 与 ${other.name} 互换位置`);
+  }else{
+    state.players.splice(oldIndex,1);
+    state.players.splice(clamped,0,p);
+    broadcast(`${p.name} 移动到 ${seatName(clamped+1)} 位置`);
+  }
+
+  p.actionsLeft = Math.max(0,p.actionsLeft-1);
+  return true;
+}
+
+/* ===================== 技能处理 ===================== */
+async function performSkill(p, skillName, target, extra){
+  if(!p.alive) return false;
+
+  if(!canUseSkill(p, skillName)){
+    playerSay(p.name, `（技能 ${skillName} 冷却中或使用次数不足）`);
+    return false;
+  }
+
+  markSkillUsed(p, skillName);
+
+  const skillDisplay = skillName || '棍木';
+  hostAll(`（${p.role}）使用了（${skillDisplay}）`);
+
+  switch(skillName){
+    case '缴械':
+      if(target&&target.alive){ target.phaseAttacksLeft = Math.max(0,target.phaseAttacksLeft-1); broadcast(`${target.name} 被缴械一次攻击次数`); }
+      break;
+    case '陷阱':
+      if(target && target.alive) applyDamage(target,6,p);
+      else playerSay(p.name,'（陷阱需要选择一个目标）');
+      break;
+    case '斩杀':
+      if(target&&target.alive&&target.hp<=5) killPlayer(target,p,false);
+      else playerSay(p.name,'（斩杀失败：目标血量高于5或不在范围）');
+      break;
+    case '视察':
+      if(target) inspectPlayer(p,target,false);
+      break;
+    case '预言':
+      if(target) inspectPlayer(p,target,target.inspectedCamp?true:false);
+      break;
+    case '真相':
+      alivePlayers().filter(o=>Math.abs(posOf(o)-posOf(p))<=2).forEach(o=>inspectPlayer(p,o,false));
+      p.stealth = true;
+      break;
+    case '真视之眼':
+      if(target) inspectPlayer(p,target,false);
+      break;
+    case '监测':
+      if(target){ inspectPlayer(p,target,false); alivePlayers().filter(o=>o!==target&&o.hp===target.hp).forEach(o=>inspectPlayer(p,o,false)); }
+      break;
+    case '沙尘暴_左':
+      for(let d=1; d<=3; d++){
+        const hit = state.players[posOf(p)-d];
+        if(hit && hit.alive){
+          const dmg = hit.camp===p.camp ? 1 : 3;
+          applyDamage(hit,dmg,p);
+        }
+      }
+      break;
+    case '沙尘暴_右':
+      for(let d=1; d<=3; d++){
+        const hit = state.players[posOf(p)+d];
+        if(hit && hit.alive){
+          const dmg = hit.camp===p.camp ? 1 : 3;
+          applyDamage(hit,dmg,p);
+        }
+      }
+      break;
+    case '查证':
+      if(target) inspectPlayer(p,target,false);
+      break;
+    case '审判':
+      if(target){ inspectPlayer(p,target,false); if(target.camp!==p.camp) applyDamage(target,8,p); }
+      break;
+    case '圣光':
+      {
+        const corpse = state.players.find(o=>!o.alive && o.corpse !== false && o.corpsePos !== null && Math.abs(o.corpsePos - posOf(p)) <= 1);
+        if(corpse){
+          corpse.alive=true;
+          corpse.role='平民';
+          corpse.camp='好人';
+          corpse.attr='武装';
+          corpse.hp=4;
+          corpse.maxHp=4;
+          corpse.atk=2;
+          corpse.corpse=false;
+          corpse.corpsePos=null;
+          broadcast(`${corpse.name} 被复活为平民`);
+        }
+      }
+      break;
+    case '窥命':
+      if(target){ p.recordedRole = target.role; broadcast(`${p.name} 记录了 ${target.name} 的职业`); }
+      break;
+    case '决斗':
+      if(target&&target.alive){
+        if(target.camp===p.camp) applyDamage(p,target.atk,target);
+        else applyDamage(target,p.atk,p);
+      }
+      break;
+    case '曙光':
+      state.players.filter(o=>o.camp===p.camp&&o.alive).forEach(o=>broadcast(`${o.name} 移动力+1`));
+      break;
+    case '剑魂':
+      if(target&&target.alive){ target.phaseAttacksLeft += 1; broadcast(`${target.name} 获得一次攻击次数`); }
+      break;
+    case '震慑':
+      alivePlayers().filter(o=>o.camp!==p.camp&&Math.abs(posOf(o)-posOf(p))<=1).forEach(o=>{ o.phaseAttacksLeft=0; o.roundAttacksLeft=0; applyDamage(o,2,p); });
+      break;
+    case '嗜血':
+      {
+        const corpse = state.players.find(o=>!o.alive && o.corpse !== false && o.corpsePos !== null && Math.abs(o.corpsePos - posOf(p)) <= 2);
+        if(corpse){ corpse.corpse=false; p.atk+=1; p.hp=Math.min(p.maxHp+4,p.hp+4); p.maxHp+=4; broadcast(`${p.name} 吞噬尸体，攻击+1，血量+4`); }
+      }
+      break;
+    case '天雷':
+      if(target){ target.marked=true; broadcast(`${target.name} 被标记，一回合后受到8点伤害`); }
+      break;
+    case '影袭':
+      if(target&&target.alive) movePlayer(p,clamp(posOf(target)+1,0,state.players.length-1));
+      break;
+    case '还魂':
+      {
+        const corpse = state.players.find(o=>!o.alive && o.corpse !== false && o.corpsePos !== null && Math.abs(o.corpsePos - posOf(p)) <= 2);
+        if(corpse){ corpse.alive=true; corpse.role='小狼'; corpse.camp='狼人'; corpse.attr='主攻'; corpse.hp=4; corpse.maxHp=4; corpse.atk=4; corpse.atkNight=1; corpse.roundLimit=1; corpse.corpse=false; corpse.corpsePos=null; broadcast(`${corpse.name} 被复活为小狼`); }
+      }
+      break;
+    case '换位':
+      if(target && target.alive){
+        movePlayer(p,posOf(target));
+      }else{
+        const nonWolf = alivePlayers().filter(o=>o.camp!==p.camp);
+        if(nonWolf.length){
+          const nearest = nonWolf.sort((a,b)=>Math.abs(posOf(a)-posOf(p))-Math.abs(posOf(b)-posOf(p)))[0];
+          movePlayer(p,posOf(nearest));
+        }
+      }
+      break;
+    case '炸弹':
+      if(target&&target.alive){ target.hasBomb=true; broadcast(`${target.name} 被放置了炸弹`); }
+      break;
+    case '猜测':
+      if(target&&target.alive){
+        const guess = (extra && extra.camp) || '好人';
+        if(target.camp===guess){ p.guessedCorrect++; target.hp=0; killPlayer(target,p,true); }
+        else broadcast(`${p.name} 猜测失败`);
+      }
+      break;
+    case '吞噬':
+      {
+        const corpses = state.players.filter(o=>!o.alive && o.corpse !== false && o.corpsePos !== null && Math.abs(o.corpsePos - posOf(p)) <= visibleRange(p));
+        let gain = 0;
+        corpses.forEach(c=>{ c.corpse=false; gain+=8; });
+        if(gain){ p.hp=Math.min(p.hp+gain,Math.max(p.hp+gain,p.maxHp+gain)); p.maxHp+=gain; broadcast(`${p.name} 吞噬尸体，血量+${gain}`); }
+      }
+      break;
+    case '观望':
+      if(target) inspectPlayer(p,target,target.inspectedCamp?true:false);
+      break;
+    case '抹杀':
+      if(target&&target.alive) killPlayer(target,p,true);
+      break;
+    case '死亡召唤':
+      state.players.filter(o=>!o.alive && o.corpse !== false && o.corpsePos !== null).slice(0,2).forEach(c=>{
+        c.alive=true;
+        c.role='骷髅';
+        c.camp='中立';
+        c.attr='危险';
+        c.hp=3;
+        c.maxHp=3;
+        c.atk=6;
+        c.atkNight=1;
+        c.roundLimit=99;
+        c.corpse=false;
+        c.corpsePos=null;
+        broadcast(`${c.name} 被召唤为骷髅`);
+      });
+      break;
+    case '死亡脉冲':
+      if(target&&target.alive) applyDamage(target,p.atk,p);
+      state.players.filter(o=>o.alive && o.role==='骷髅').forEach(o=>{
+        o.hp = Math.min(o.maxHp, o.hp + 3);
+      });
+      break;
+    default:
+      playerSay(p.name,`（技能 ${skillDisplay} 已使用）`);
+  }
+
+  p.actionsLeft = Math.max(0,p.actionsLeft-1);
+  renderAll();
+  return true;
+}
+
+/* ===================== 结算 ===================== */
+function checkNeutralWin(p){
+  switch(p.role){
+    case '木乃伊': case '尸壳（濒死）': return {type:'common',label:'存活到最后共同获胜'};
+    case '赌怪': if(p.guessedCorrect>=3) return {type:'solo',label:'猜测正确三次'}; break;
+    case '小丑': break;
+    case '投机者': if(p.alive && alivePlayers().length<=4) return {type:'solo',label:'存活至游戏结束且场上≤4人'}; break;
+    case '死灵法师': if(alivePlayers().every(o=>o.role==='骷髅'||o===p)) return {type:'solo',label:'场上玩家全部为死灵阵营'}; break;
+    case '僵尸': if(alivePlayers().filter(o=>o.role==='僵尸').length>=4 || alivePlayers().every(o=>o.role==='僵尸')) return {type:'solo',label:'僵尸数量≥4或场上全是僵尸'}; break;
+    case '秃鹫': if(p.hp>=25) return {type:'solo',label:'血量≥25'}; break;
+    case '末日预言家': if(alivePlayers().length===1 && alivePlayers()[0]===p) return {type:'solo',label:'场上只有自己'}; break;
+  }
+  return null;
+}
+
+function endGame(){
+  if(state.ended) return;
+  state.ended = true;
+  stopAuto();
+  stopFreeChatLoop();
+  clearUserTimer();
+  closeTargetModal();
+  state.userTurnActive = false;
+
+  const good = goodAlive();
+  const wolf = wolfAlive();
+  const danger = dangerousAlive();
+
+  let soloWinner = null;
+  let commonWinners = [];
+  for(const p of alivePlayers().filter(p=>p.camp==='中立')){
+    const r = checkNeutralWin(p);
+    if(r?.type==='solo') soloWinner = {player:p,label:r.label};
+    if(r?.type==='common') commonWinners.push(p);
+  }
+  const clown = state.players.find(p=>p.role==='小丑'&&!p.alive&&p.deadTurn);
+  if(clown && !soloWinner) soloWinner = {player:clown,label:'白天死亡'};
+
+  let winner = null;
+  if(soloWinner){
+    winner = 'neutral_solo';
+    state.soloNeutral = soloWinner;
+  }else if(good===0 && wolf===0 && danger===0){
+    winner = 'none';
+  }else if(good>0 && wolf===0 && danger===0){
+    winner = 'good';
+  }else if(good===0 && wolf>0 && danger===0){
+    winner = 'wolf';
+  }else if(good===0 && wolf===0 && danger>0){
+    winner = 'none';
+  }else if(state.day>=DAYS && good>0){
+    winner = 'good';
+  }else{
+    if(good>0 && wolf===0 && danger===0) winner = 'good';
+    else if(good===0 && wolf>0 && danger===0) winner = 'wolf';
+    else if(good===0 && wolf===0 && danger>0) winner = 'none';
+    else if(good>0) winner = 'good';
+    else winner = 'wolf';
+  }
+  if(winner==='good'||winner==='wolf') state.commonNeutrals = commonWinners;
+  state.winner = winner;
+
+  state.players.forEach(p=>{
+    if(p.isUser) return;
+
+    if(!state.aiMemory[p.id]){
+      state.aiMemory[p.id] = { previousGames: [] };
+    }
+
+    state.aiMemory[p.id].previousGames.push({
+      day: state.day,
+      role: p.role,
+      camp: p.camp,
+      alive: p.alive,
+      winner: winner
+    });
+
+    if(state.aiMemory[p.id].previousGames.length > 3){
+      state.aiMemory[p.id].previousGames.shift();
+    }
+  });
+
+  hostAll('游戏结束！');
+  const roleLines = state.players.map(p=>`${p.name} ${p.role} 阵营：${p.camp} 剩余血量：${p.hp.toFixed(2)}`).join('；');
+  announceDeath(`职业与剩余血量：${roleLines}`);
+
+  if(winner==='neutral_solo') hostAll(`获胜阵营：中立阵营单独获胜（${soloWinner.player.name} ${soloWinner.player.role}，${soloWinner.label}）`);
+  else if(winner==='good') hostAll(`获胜阵营：好人阵营获胜${state.commonNeutrals.length?'，'+state.commonNeutrals.map(p=>p.name).join('、')+' 共同获胜':''}`);
+  else if(winner==='wolf') hostAll(`获胜阵营：狼人阵营获胜${state.commonNeutrals.length?'，'+state.commonNeutrals.map(p=>p.name).join('、')+' 共同获胜':''}`);
+  else if(winner==='none') hostAll('获胜阵营：无人生还');
+
+  state.players.forEach(p=>{
+    let delta = 0;
+    if(winner==='none') delta = 0;
+    else if(winner==='neutral_solo') delta = (soloWinner.player.id===p.id)?1:-1;
+    else if(winner==='good'){
+      const isGood = p.camp==='好人';
+      const isCommon = state.commonNeutrals.some(c=>c.id===p.id);
+      delta = (isGood||isCommon)?1:-1;
+    }else if(winner==='wolf'){
+      const isWolf = p.camp==='狼人';
+      const isCommon = state.commonNeutrals.some(c=>c.id===p.id);
+      delta = (isWolf||isCommon)?1:-1;
+    }
+    p.score = (p.score||20)+delta;
+    state.scores[p.id] = p.score;
+  });
+  $('scorePanel').innerHTML = state.players.map(p=>`${p.name} ${p.role}：${state.scores[p.id]}分`).join('<br>');
+  renderAll();
+}
+
+/* ===================== 玩家指令 ===================== */
+function handleUserInput(text){
+  if(!state.started){ system('游戏尚未开始'); return; }
+  const user = state.players.find(p=>p.isUser);
+  if(!user){
+    if(text.startsWith('/host ')) hostAll(text.slice(6));
+    else if(text.startsWith('/pw ')){
+      const parts = text.slice(4).trim().split(/\s+(.*)/);
+      const target = getPlayer(parts[0]);
+      if(target) hostPrivate(target.id,parts[1]||'');
+    }else playerSay('主持人',text);
+    return;
+  }
+
+  if(!user.alive){ playerSay(user.name,text); return; }
+
+  if(handlePlayerAdminCommand(text)) return;
+
+  const isActionCmd = text.startsWith('/attack ')||text.startsWith('/攻击 ')||text.startsWith('/skill ')||text.startsWith('/技能 ')||text.startsWith('/move ')||text.startsWith('/移动 ')||text==='/end'||text==='/结束';
+  if(isActionCmd && !state.userTurnActive){
+    system('现在不是你的行动回合，不能执行该操作。');
+    return;
+  }
+
+  if(text.startsWith('/w ') || text.startsWith('/私聊 ')){
+    const parts = text.replace('/私聊 ','/w ').slice(3).trim().split(/\s+(.*)/);
+    const target = getPlayer(parts[0]);
+    if(target && parts[1]) playerPrivate(user,target.id,parts[1]);
+    else system('格式：/w ⑤ 内容');
+    return;
+  }
+
+  if(text.startsWith('/attack ') || text.startsWith('/攻击 ')){
+    const target = getPlayer(text.replace('/攻击 ','/attack ').slice(8).trim());
+    if(target){
+      handleAction(user,{type:'attack',target:target.id}).then(res=>{
+        if(res && res.success){
+          if(user.actionsLeft <= 0){
+            endUserTurn();
+          }else{
+            renderAll();
+          }
+        }
+      });
+    }else system('目标不存在');
+    return;
+  }
+
+  if(text.startsWith('/skill ') || text.startsWith('/技能 ')){
+    if(user.skillUsedThisTurn){
+      system('本次行动已经使用过技能。');
+      return;
+    }
+
+    const rest = text.replace('/技能 ','/skill ').slice(7).trim();
+    const parts = rest.split(/\s+(.*)/);
+    const skill = parts[0];
+    const target = parts[1]?getPlayer(parts[1]):null;
+
+    user.skillUsedThisTurn = true;
+    user.usedSkillChoice = skill;
+    renderActionPanel();
+
+    handleAction(user,{type:'skill',skill,target:target?.id}).then(ok=>{
+      if(ok){
+        user.actionConsumed = true;
+        endCurrentAction(user);
+      }else{
+        user.skillUsedThisTurn = false;
+        user.usedSkillChoice = null;
+        renderActionPanel();
+      }
+    });
+    return;
+  }
+
+  if(text.startsWith('/move ') || text.startsWith('/移动 ')){
+    const n = parseInt(text.replace('/移动 ','/move ').slice(6).trim());
+    if(!isNaN(n)){
+      handleAction(user,{type:'move',targetPos:n}).then(ok=>{
+        if(ok){
+          user.actionConsumed = true;
+          endCurrentAction(user);
+        }
+      });
+    }
+    return;
+  }
+
+  if(text==='/end' || text==='/结束'){
+    endCurrentAction(user);
+    return;
+  }
+
+  if(text==='/help'){
+    system('玩家指令：/w ⑤ 内容 私聊；/attack ⑤ 攻击；/skill 技能名 ⑤ 使用技能；/move 位置 移动；/end 结束行动；/职业名 @目标 1或2；/血量 @目标 数字；/护盾 @目标 数字；/伤害 @目标 数字');
+    return;
+  }
+
+  playerSay(user.name,text);
+  triggerFreeChatReply(2);
+}
+
+/* ===================== UI 事件 ===================== */
+function bindEvents(){
+  $('btnSetup').onclick = openSetup;
+  $('btnCancelSetup').onclick = closeSetup;
+  $('btnCancelTarget').onclick = closeTargetModal;
+  $('setMode').onchange = updateSeatOptions;
+  $('setPlayerCount').onchange = updateSeatOptions;
+  $('setAiProvider').onchange = applyProvider;
+
+  $('btnStartGame').onclick = ()=>{
+    state.api.endpoint = $('setEndpoint').value.trim();
+    state.api.key = $('setKey').value.trim();
+    state.api.model = $('setModel').value.trim()||'deepseek-flash';
+    startGame();
+  };
+
+  $('btnSettleInModal').onclick = ()=>{
+    closeSetup();
+    if(!state.started || state.ended){ system('当前没有进行中的对局，无法结算。'); return; }
+    endGame();
+  };
+
+  $('btnNextTurn').onclick = ()=>{
+    if(state.mode === 'player') togglePause();
+    else nextTurn();
+  };
+
+  $('btnAuto').onclick = ()=>{
+    if(state.auto) stopAuto();
+    else if(state.started) autoNext();
+  };
+
+  $('sendBtn').onclick = ()=>{
+    const input = $('chatInput');
+    const text = input.value.trim();
+    if(!text) return;
+    input.value='';
+    handleUserInput(text);
+  };
+
+  $('chatInput').addEventListener('keydown',e=>{
+    if(e.key==='Enter'){
+      e.preventDefault();
+      $('sendBtn').click();
+    }
+  });
+
+  document.querySelectorAll('#tabs button').forEach(btn=>{
+    btn.onclick = ()=>{
+      document.querySelectorAll('#tabs button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      state.currentTab = btn.dataset.tab;
+      renderLog();
+    };
+  });
+
+  $('privateSelect').onchange = (e)=>{
+    state.privateTarget = e.target.value?parseInt(e.target.value):null;
+  };
+}
+
+/* ===================== 启动 ===================== */
+bindEvents();
+applyProvider();
+renderAll();
+system('欢迎来到多职业狼人杀 AI 聊天群。点击“设置 / 新游戏”开始。');
+</script>
+</body>
+</html>
